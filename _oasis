@@ -19,7 +19,7 @@ Description:
   computing functions from these.
 
 Library typerep_extended
-  Path:               lib
+  Path:               src
   Pack:               true
   Modules:            Farray,
                       Flat_map_intf,
