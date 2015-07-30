@@ -1,8 +1,6 @@
 open! Core_kernel.Std
 open Typerep_lib.Std
 
-
-
 module Name = struct
   include Int
   let typerep_of_t = typerep_of_int
