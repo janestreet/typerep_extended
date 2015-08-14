@@ -1,4 +1,37 @@
 # OASIS_START
+# DO NOT EDIT (digest: ede386bef342de4567a3e08e67857d1d)
+# Ignore VCS directories, you can use the same kind of rule outside
+# OASIS_START/STOP if you want to exclude directories that contains
+# useless stuff for the build process
+true: annot, bin_annot
+<**/.svn>: -traverse
+<**/.svn>: not_hygienic
+".bzr": -traverse
+".bzr": not_hygienic
+".hg": -traverse
+".hg": not_hygienic
+".git": -traverse
+".git": not_hygienic
+"_darcs": -traverse
+"_darcs": not_hygienic
+# Library typerep_extended
+"src/typerep_extended.cmxs": use_typerep_extended
+"src/farray.cmx": for-pack(Typerep_extended)
+"src/flat_map_intf.cmx": for-pack(Typerep_extended)
+"src/flat_map.cmx": for-pack(Typerep_extended)
+"src/std.cmx": for-pack(Typerep_extended)
+"src/tagged_generic.cmx": for-pack(Typerep_extended)
+"src/tagged.cmx": for-pack(Typerep_extended)
+"src/traverse_map.cmx": for-pack(Typerep_extended)
+"src/typestructable.cmx": for-pack(Typerep_extended)
+"src/type_struct.cmx": for-pack(Typerep_extended)
+<src/*.ml{,i,y}>: package(bin_prot)
+<src/*.ml{,i,y}>: package(bin_prot.syntax)
+<src/*.ml{,i,y}>: package(core_kernel)
+<src/*.ml{,i,y}>: package(sexplib)
+<src/*.ml{,i,y}>: package(sexplib.syntax)
+<src/*.ml{,i,y}>: package(typerep_lib)
+<src/*.ml{,i,y}>: package(typerep_lib.syntax)
 # OASIS_STOP
 <**/*.ml>: warn(-40)
 <src/*.ml{,i}>: syntax_camlp4o
