@@ -15,7 +15,7 @@ module Variant = struct
     type t =
     | Polymorphic
     | Usual
-    with sexp, typerep, bin_io
+    [@@deriving sexp, typerep, bin_io]
 
     let is_polymorphic = function
       | Polymorphic -> true
@@ -29,14 +29,14 @@ module Variant = struct
     type t = {
       name : string;
       repr : int;
-    } with sexp, bin_io, typerep
+    } [@@deriving sexp, bin_io, typerep]
   end
   module V2 = struct
     type t = {
       label : string;
       index : int;
       ocaml_repr : int;
-    } with sexp, bin_io, typerep
+    } [@@deriving sexp, bin_io, typerep]
   end
   include V2
   let label t = t.label
@@ -87,7 +87,7 @@ module Variant_infos = struct
   module V1 = struct
     type t = {
       kind : Variant.Kind.t;
-    } with sexp, bin_io, typerep
+    } [@@deriving sexp, bin_io, typerep]
   end
   include V1
   let equal t t' = Variant.Kind.equal t.kind t'.kind
@@ -95,13 +95,14 @@ end
 
 module Field = struct
   module V1 = struct
-    type t = string with sexp, bin_io, typerep
+    type t = string [@@deriving sexp, bin_io, typerep]
   end
   module V2 = struct
     type t = {
       label : string;
       index : int;
-    } with sexp, bin_io, typerep
+      is_mutable : bool;
+    } [@@deriving sexp, bin_io, typerep]
   end
   (* module V3 = struct
    *   type t = {
@@ -114,10 +115,12 @@ module Field = struct
   include V2
   let label t = t.label
   let index t = t.index
+  let is_mutable t = t.is_mutable
   let to_v1 t = t.label
-  let of_v1 index label = {
+  let of_v1 index label ~is_mutable = {
     label;
     index;
+    is_mutable;
   }
 end
 
@@ -125,7 +128,7 @@ module Record_infos = struct
   module V1 = struct
     type t = {
       has_double_array_tag : bool;
-    } with sexp, bin_io, typerep
+    } [@@deriving sexp, bin_io, typerep]
   end
   include V1
   let equal t t' = t.has_double_array_tag = t'.has_double_array_tag
@@ -151,11 +154,11 @@ module T = struct
   | Record of Record_infos.t * (Field.t * t) Farray.t
   | Variant of Variant_infos.t * (Variant.t * t Farray.t) Farray.t
   | Named of Name.t * t option
-  with sexp, typerep
+  [@@deriving sexp, typerep]
 end
 include T
 
-type type_struct = t with sexp
+type type_struct = t [@@deriving sexp]
 
 let incompatible () = Named (Name.incompatible, None)
 
@@ -293,7 +296,7 @@ end
 
 module Raw = struct
   module T = struct
-    type nonrec t = t with sexp
+    type nonrec t = t [@@deriving sexp]
     let compare = Pervasives.compare
     let hash = Hashtbl.hash
   end
@@ -301,7 +304,7 @@ module Raw = struct
 end
 
 module Named_utils(X:sig
-  type t with sexp_of
+  type t [@@deriving sexp_of]
   class traverse : object
     method iter : t -> unit
     method map : t -> t
@@ -375,7 +378,7 @@ end) = struct
     end in
     rename#map t
 
-  exception Invalid_recursive_name of Name.t * X.t with sexp
+  exception Invalid_recursive_name of Name.t * X.t [@@deriving sexp]
 
   let standalone_exn ~readonly (t:X.t) =
     if not (has_named t) then t else (* allocation optimization *)
@@ -420,7 +423,7 @@ end) = struct
 end
 
 include Named_utils(struct
-  type t = type_struct with sexp_of
+  type t = type_struct [@@deriving sexp_of]
   class traverse_non_rec = traverse
   class traverse = traverse_non_rec
   let match_named = function
@@ -492,7 +495,7 @@ let reduce t =
   let reduced = remove_dead_links shared in
   reduced
 
-exception Invalid_recursive_typestruct of Name.t * t with sexp
+exception Invalid_recursive_typestruct of Name.t * t [@@deriving sexp]
 
 let sort_variant_cases cases =
   let cmp (variant, _) (variant', _) =
@@ -502,7 +505,7 @@ let sort_variant_cases cases =
 
 module Pairs = struct
   module T = struct
-    type t = Name.t * Name.t with sexp
+    type t = Name.t * Name.t [@@deriving sexp]
     let compare (a, b) (a', b') =
       let cmp = Name.compare a a' in
       if cmp <> 0 then cmp else Name.compare b b'
@@ -655,9 +658,9 @@ module Incompatible_types = struct
      this library does not depend on core, and dealing with exception is the easiest way
      to plunge this library in a world using a error monad, as soon as there exists a
      [try_with] function *)
-  exception Invalid_recursive_structure of t * t with sexp
-  exception Field_conflict of t * t * (Field.t * Field.t) with sexp
-  exception Types_conflict of t * t with sexp
+  exception Invalid_recursive_structure of t * t [@@deriving sexp]
+  exception Field_conflict of t * t * (Field.t * Field.t) [@@deriving sexp]
+  exception Types_conflict of t * t [@@deriving sexp]
 end
 
 let least_upper_bound_exn a b =
@@ -765,7 +768,7 @@ let least_upper_bound_exn a b =
             Hashtbl.set by_ocaml_repr ~key:variant.ocaml_repr ~data);
           let index = ref (Farray.length cases_a) in
           Farray.iter cases_b ~f:(fun (variant_b, args_b) ->
-            Hashtbl.change by_ocaml_repr variant_b.ocaml_repr (function
+            Hashtbl.update by_ocaml_repr variant_b.ocaml_repr ~f:(function
               | None ->
                 let variant =
                   { Variant.
@@ -775,15 +778,15 @@ let least_upper_bound_exn a b =
                   }
                 in
                 incr index;
-                Some (variant, args_b)
+                (variant, args_b)
               | Some (variant_a, args_a) ->
                 if String.(<>) variant_a.label variant_b.label
                 then fail ()
-                else Some (variant_a, combine_array ~fail aux args_a args_b)
+                else (variant_a, combine_array ~fail aux args_a args_b)
             ));
           let len = !index in
           let cases = Array.create ~len (Farray.get cases_a 0) in
-          Hashtbl.iter by_ocaml_repr ~f:(fun ~key:_ ~data:((variant, _) as data) ->
+          Hashtbl.iteri by_ocaml_repr ~f:(fun ~key:_ ~data:((variant, _) as data) ->
             cases.(variant.index) <- data);
           Variant (infos_a, Farray.copy cases);
           end
@@ -886,8 +889,9 @@ module Internal_generic = Type_generic.Make(struct
       match Record.field record index with
       | Record.Field field ->
         let label = Field.label field in
+        let is_mutable = Field.is_mutable field in
         let type_struct = (Field.traverse field : type_struct) in
-        { Type_struct_field.label ; index }, type_struct
+        { Type_struct_field.label; index; is_mutable  }, type_struct
     )
     in
     Record (infos, fields)
@@ -982,14 +986,14 @@ module Diff = struct
   module Path = struct
     (* the path leading to the variant. succession of field names, variant names,
        or string representation of base types. for tuple with use 'f0', 'f1', etc. *)
-    type t = string list with sexp
+    type t = string list [@@deriving sexp]
   end
 
   module Compatibility = struct
     type t = [
     | `Backward_compatible
     | `Break
-    ] with sexp
+    ] [@@deriving sexp]
   end
 
   module Atom = struct
@@ -1004,10 +1008,10 @@ module Diff = struct
     | Update_variant of
         (Variant.t * type_struct Farray.t)
       * (Variant.t * type_struct Farray.t)
-    with sexp
+    [@@deriving sexp]
   end
 
-  type t = (Path.t * Atom.t) list with sexp
+  type t = (Path.t * Atom.t) list [@@deriving sexp]
 
   let is_empty = List.is_empty
 
@@ -1256,8 +1260,8 @@ module Diff = struct
 end
 
 module To_typerep = struct
-  exception Unbound_name of t * Name.t with sexp
-  exception Unsupported_tuple of t with sexp
+  exception Unbound_name of t * Name.t [@@deriving sexp]
+  exception Unsupported_tuple of t [@@deriving sexp]
 
   let to_typerep : t -> Typerep.packed = fun type_struct ->
     let table = Name.Table.create () in
@@ -1318,6 +1322,7 @@ module To_typerep = struct
           if index <> field.Field.index then assert false;
           let label = field.Field.label in
           let Typerep.T typerep_of_field = aux str in
+          let is_mutable = field.Field.is_mutable in
           let get obj =
             let cond = Obj.is_block obj && Obj.size obj = len in
             if not cond then assert false;
@@ -1330,6 +1335,7 @@ module To_typerep = struct
             rep = typerep_of_field;
             index;
             tyid = Typename.create ();
+            is_mutable;
             get;
           } in
           Typerep.Record_internal.Field (Typerep.Field.internal_use_only field)
@@ -1589,23 +1595,23 @@ module Versioned = struct
     | `v2
     | `v3
     | `v4
-    ] with bin_io, sexp, typerep
+    ] [@@deriving bin_io, sexp, typerep]
     let v1 = `v1
     let v2 = `v2
     let v3 = `v3
     let v4 = `v4
   end
-  exception Not_downgradable of Sexp.t with sexp
+  exception Not_downgradable of Sexp.t [@@deriving sexp]
   module type V_sig = sig
     type t
-    with sexp, bin_io, typerep
+    [@@deriving sexp, bin_io, typerep]
     val serialize : type_struct -> t
     val unserialize : t -> type_struct
   end
   module V0 : V_sig = struct
     type t =
     | Unit
-    with sexp, bin_io, typerep
+    [@@deriving sexp, bin_io, typerep]
 
     let serialize = function
       | T.Unit -> Unit
@@ -1633,7 +1639,7 @@ module Versioned = struct
     | Record of (Field.V1.t * t) Farray.t
     | Tuple of t Farray.t
     | Variant of Variant.Kind.t * (Variant.V1.t * t Farray.t) Farray.t
-    with sexp, bin_io, typerep
+    [@@deriving sexp, bin_io, typerep]
 
     let rec serialize = function
       | T.Int       -> Int
@@ -1689,7 +1695,7 @@ module Versioned = struct
           has_double_array_tag = false;
         } in
         let mapi index (field, t) =
-          let field = Field.of_v1 index field in
+          let field = Field.of_v1 index field ~is_mutable:false in
           field, unserialize t
         in
         let fields = Farray.mapi ~f:mapi fields in
@@ -1724,7 +1730,7 @@ module Versioned = struct
     | Tuple of t Farray.t
     | Variant of Variant.Kind.t * (Variant.V1.t * t Farray.t) Farray.t
     | Named of Name.t * t option
-    with sexp, bin_io, typerep
+    [@@deriving sexp, bin_io, typerep]
 
     let rec serialize = function
       | T.Int       -> Int
@@ -1783,7 +1789,7 @@ module Versioned = struct
           has_double_array_tag = false;
         } in
         let mapi index (field, t) =
-          let field = Field.of_v1 index field in
+          let field = Field.of_v1 index field ~is_mutable:false in
           field, unserialize t
         in
         let fields = Farray.mapi ~f:mapi fields in
@@ -1821,7 +1827,7 @@ module Versioned = struct
     | Tuple of t Farray.t
     | Variant of Variant_infos.V1.t * (Variant.V1.t * t Farray.t) Farray.t
     | Named of Name.t * t option
-    with sexp, bin_io, typerep
+    [@@deriving sexp, bin_io, typerep]
 
     let rec serialize = function
       | T.Int       -> Int
@@ -1874,7 +1880,7 @@ module Versioned = struct
       | Ref t     -> T.Ref (unserialize t)
       | Record (infos, fields) ->
         let mapi index (field, t) =
-          let field = Field.of_v1 index field in
+          let field = Field.of_v1 index field ~is_mutable:false in
           field, unserialize t
         in
         let fields = Farray.mapi ~f:mapi fields in
@@ -1913,7 +1919,7 @@ module Versioned = struct
     | Record of Record_infos.V1.t * (Field.V2.t * t) Farray.t
     | Variant of Variant_infos.V1.t * (Variant.V2.t * t Farray.t) Farray.t
     | Named of Name.t * t option
-    with sexp, bin_io
+    [@@deriving sexp, bin_io]
     let typerep_of_t = T.typerep_of_t
     let typename_of_t = T.typename_of_t
     (* *)
@@ -1928,7 +1934,7 @@ module Versioned = struct
   | `V2 of V2.t
   | `V3 of V3.t
   | `V4 of V4.t
-  ] with bin_io, sexp, typerep
+  ] [@@deriving bin_io, sexp, typerep]
 
   let aux_unserialize = function
     | `V0 v0 -> V0.unserialize v0

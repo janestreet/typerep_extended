@@ -5,7 +5,7 @@ open! Core_kernel.Std
 open Typerep_lib.Std
 
 module Name : sig
-  type t = int with sexp, bin_io
+  type t = int [@@deriving sexp, bin_io]
   include Hashable.S with type t := t
   val make_fresh : unit -> (unit -> t)
 end
@@ -15,7 +15,7 @@ module Variant : sig
     type t =
     | Polymorphic
     | Usual
-    with sexp, bin_io
+    [@@deriving sexp, bin_io]
     val is_polymorphic : t -> bool
     val equal : t -> t -> bool
   end
@@ -23,7 +23,7 @@ module Variant : sig
     label : string;
     index : int;
     ocaml_repr : int;
-  } with sexp_of
+  } [@@deriving sexp_of]
   val label : t -> string
   val index : t -> int
   val ocaml_repr : t -> int
@@ -36,7 +36,7 @@ end
 module Variant_infos : sig
   type t = {
     kind : Variant.Kind.t;
-  } with sexp_of
+  } [@@deriving sexp_of]
   val equal : t -> t -> bool
 end
 
@@ -44,15 +44,17 @@ module Field : sig
   type t = {
     label : string;
     index : int;
-  } with sexp_of
+    is_mutable : bool;
+  } [@@deriving sexp_of]
   val label : t -> string
   val index : t -> int
+  val is_mutable : t -> bool
 end
 
 module Record_infos : sig
   type t = {
     has_double_array_tag : bool;
-  } with sexp_of
+  } [@@deriving sexp_of]
   val equal : t -> t -> bool
 end
 
@@ -75,7 +77,7 @@ type t =
 | Record of Record_infos.t * (Field.t * t) Farray.t
 | Variant of Variant_infos.t * (Variant.t * t Farray.t) Farray.t
 | Named of Name.t * t option
-with sexp_of
+[@@deriving sexp_of]
 (*
   if needed, add other constructors
 | Function of t list -> t
@@ -182,7 +184,7 @@ val sexp_of_typerep : _ Typerep.t -> Sexp.t
 *)
 module Diff : sig
 
-  type t with sexp_of
+  type t [@@deriving sexp_of]
 
   val is_empty : t -> bool
 
@@ -198,11 +200,11 @@ end
 
 module Versioned : sig
   type t
-  with bin_io, sexp, typerep
+  [@@deriving bin_io, sexp, typerep]
 
   module Version : sig
     (* sexp syntax for config files : 'v1', 'v2', 'v3', etc. *)
-    type t with bin_io, sexp, typerep
+    type t [@@deriving bin_io, sexp, typerep]
     val v1 : t
     val v2 : t
     val v3 : t
@@ -213,7 +215,7 @@ module Versioned : sig
 
   val unserialize : t -> type_struct
 
-  exception Not_downgradable of Sexp.t with sexp
+  exception Not_downgradable of Sexp.t [@@deriving sexp]
   (** may raise iif the current value is not_downgradable. (use of new feature) *)
   val serialize : version:Version.t -> type_struct -> t
 
@@ -245,7 +247,7 @@ end
 
 (* helper for recursive types encoded with Named *)
 module Named_utils(X:sig
-  type t with sexp_of
+  type t [@@deriving sexp_of]
   class traverse : object
     method iter : t -> unit
     method map : t -> t

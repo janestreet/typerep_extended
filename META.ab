@@ -1,0 +1,7 @@
+version = "$(pkg_version)"
+description = "Runtime types for OCaml"
+requires = "bin_prot core_kernel sexplib typerep"
+archive(byte          ) = "typerep_extended.cma"
+archive(native        ) = "typerep_extended.cmxa"
+archive(native, plugin) = "typerep_extended.cmxs"
+exists_if = "typerep_extended.cma"

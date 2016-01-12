@@ -1,7 +1,7 @@
 open! Core_kernel.Std
 open Typerep_lib.Std
 
-type t with sexp_of
+type t [@@deriving sexp_of]
 type untyped = t
 
 val t_of_int        : int -> t
@@ -35,7 +35,7 @@ val t_of_tuple3' : t * t * t -> t
 val t_of_tuple4' : t * t * t * t -> t
 val t_of_tuple5' : t * t * t * t * t -> t
 
-exception Unexpected of (t * string) with sexp
+exception Unexpected of (t * string) [@@deriving sexp]
 
 val int_of_t        : t -> int
 val int32_of_t      : t -> int32

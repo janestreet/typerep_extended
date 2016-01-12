@@ -40,8 +40,8 @@ module Make_advanced
 
   type 'a t = 'a X.t
 
-  exception Unknown_named of Type_struct.t * Type_struct.Name.t with sexp
-  exception Type_mismatch of Type_struct.t * Tagged.t with sexp
+  exception Unknown_named of Type_struct.t * Type_struct.Name.t [@@deriving sexp]
+  exception Type_mismatch of Type_struct.t * Tagged.t [@@deriving sexp]
 
   module S = Type_struct
 
@@ -110,7 +110,7 @@ module Make_advanced
         end) in
         let typename = Typerep.Named.typename_of_t Typename_of_t.named in
         let fields = Farray.map fields_str ~f:(fun (field, str) ->
-          let { Type_struct.Field.index ; label } = field in
+          let { Type_struct.Field.index ; label ; is_mutable } = field in
           let get untyped =
             let fields =
               try Tagged.Record.unpack_with_fields_check fields_str untyped
@@ -125,6 +125,7 @@ module Make_advanced
             rep = of_typestruct str;
             index;
             tyid = Typename.create ();
+            is_mutable;
             get;
           }
         ) in

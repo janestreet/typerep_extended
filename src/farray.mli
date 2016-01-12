@@ -1,6 +1,6 @@
 open! Core_kernel.Std
 
-type 'a t with sexp, bin_io, typerep
+type 'a t [@@deriving sexp, bin_io, typerep]
 
 val get         : 'a t -> int -> 'a
 val length      : _ t -> int

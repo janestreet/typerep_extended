@@ -27,11 +27,11 @@ type t =
 | Record of Type_struct.Record_infos.t * (Type_struct.Field.t * t) Farray.t
 | Tuple of t Farray.t
 | Variant of Type_struct.Variant_infos.t * Type_struct.Variant.t * t Farray.t
-with sexp_of
+[@@deriving sexp_of]
 
 type untyped = t
 
-exception Type_mismatch of Type_struct.t * t with sexp
+exception Type_mismatch of Type_struct.t * t [@@deriving sexp]
 
 let t_of_int    t     = Int t
 let t_of_int32  t     = Int32 t
@@ -64,7 +64,7 @@ let t_of_tuple3' (a,b,c) = Tuple (Farray.make3 a b c)
 let t_of_tuple4' (a,b,c,d) = Tuple (Farray.make4 a b c d)
 let t_of_tuple5' (a,b,c,d,e) = Tuple (Farray.make5 a b c d e)
 
-exception Unexpected of (t * string) with sexp
+exception Unexpected of (t * string) [@@deriving sexp]
 
 let variant_of_args args =
   match Farray.length args with
@@ -126,7 +126,8 @@ module Of_typed = struct
         | Record.Field field ->
           let label = Field.label field in
           let index = Field.index field in
-          let ufield = { Type_struct.Field.label ; index } in
+          let is_mutable = Field.is_mutable field in
+          let ufield = { Type_struct.Field.label ; index ; is_mutable } in
           ufield, Field.traverse field (Field.get field typed)
       ) in
       Record (infos, arr)
@@ -479,11 +480,18 @@ module Record = struct
     | Record (_, untyped_fields)
         when Farray.length untyped_fields = Farray.length fields ->
       let iter (expected, _) (read, _) =
-        let { Type_struct.Field.label = elabel ; index = eindex } = expected in
-        let { Type_struct.Field.label = rlabel ; index = rindex } = read in
+        let { Type_struct.Field.
+              label      = elabel
+            ; index      = eindex
+            ; is_mutable = eis_mutable } = expected in
+        let { Type_struct.Field.
+              label      = rlabel
+            ; index      = rindex
+            ; is_mutable = ris_mutable } = read in
         if
-          not (String.equal elabel rlabel)
-          || not (Int.equal eindex rindex)
+          not (String.equal elabel      rlabel) ||
+          not (Int.equal    eindex      rindex) ||
+          not (Bool.equal   eis_mutable ris_mutable)
         then
           invalid_arg "dummy" (* catched in untyped_generic *)
       in

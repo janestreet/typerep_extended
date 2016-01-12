@@ -1,4 +1,8 @@
+<**/*.ml{,i}>: warn(-40), no_alias_deps
+<**/*>: thread
+# This prevents the implicit addition of -ppx options by ocamlfind
+<**/*.ml{,i}>: predicate(ppx_driver)
+<src/*.ml>: for-pack(Typerep_extended)
+<src/*.ml{,i}>: ppx-driver(ppx_bin_prot+ppx_sexp_conv+ppx_type_conv+ppx_typerep_conv)
 # OASIS_START
 # OASIS_STOP
-<**/*.ml>: warn(-40)
-<src/*.ml{,i}>: syntax_camlp4o
