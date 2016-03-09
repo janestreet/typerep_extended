@@ -1,4 +1,4 @@
-open Core.Std
+open! Core.Std
 
 exception Type_mismatch of string * Json.Json_type.t
 

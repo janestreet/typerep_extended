@@ -1,4 +1,4 @@
-open Core.Std
+open! Core.Std
 open Typerep_experimental.Std
 
 module Transaction_type : sig
