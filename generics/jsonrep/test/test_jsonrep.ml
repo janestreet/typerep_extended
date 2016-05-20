@@ -6,64 +6,98 @@ module Jt = Json.Json_type
 
 let%test_module _ = (module struct
 
-  type x =
-    | Foo
-    | Bar of int
-    | Baz of float * float
-    [@@deriving typerep]
+  module type S = sig
+    type t [@@deriving compare, sexp_of, typerep]
+  end
 
-  type mrec = {
-    foo: int;
-    bar: float
-  } [@@deriving typerep]
+  module Test_variant = struct
+    type t =
+      | Foo
+      | Bar of int
+      | Baz of float * float
+    [@@deriving compare, sexp_of, typerep]
+  end
 
-  type tree = Leaf | Node of tree * tree [@@deriving typerep]
+  module Test_record = struct
+    type t = {
+      foo: int;
+      bar: float option
+    }
+    [@@deriving compare, sexp_of, typerep]
+  end
 
-  let test_json x typerep_of_x =
-    let test t_of_json json_of_t =
-      let `generic x_of_json = t_of_json typerep_of_x in
-      let `generic json_of_x = json_of_t typerep_of_x in
-      Polymorphic_compare.equal x (x_of_json (json_of_x x))
+  module Test_tree = struct
+    type t = Leaf | Node of t * t
+    [@@deriving compare, sexp_of, typerep]
+  end
+
+  module Int_option = struct
+    type t = int option [@@deriving compare, sexp_of, typerep]
+  end
+
+  module Int_list = struct
+    type t = int list [@@deriving compare, sexp_of, typerep]
+  end
+
+  module Int_array = struct
+    type t = int array [@@deriving compare, sexp_of, typerep]
+  end
+
+  module Test_tuple2 = struct
+    type t = int * int [@@deriving compare, sexp_of, typerep]
+  end
+
+  module Test_tuple4 = struct
+    type t = int * float * string * bool [@@deriving compare, sexp_of, typerep]
+  end
+
+  let test (type s) (module T : S with type t = s)
+        (t_list : s list) (str_list : string list) =
+    let open T in
+    let roundtrip t_of_json json_of_t =
+      (* roundtrip t -> json -> t *)
+      let `generic of_json = t_of_json typerep_of_t in
+      let `generic to_json = json_of_t typerep_of_t in
+      List.iter t_list ~f:(fun t ->
+        [%test_result: t] (to_json t |> of_json) ~expect:t
+      );
+      (* roundtrip for a very common use case: t -> json -> string -> json -> t *)
+      let open Json.Json_io in
+      let of_json_string str = json_of_string ~recursive:true str |> of_json in
+      let to_json_string t = to_json t |> string_of_json ~recursive:true in
+      List.iter str_list ~f:(fun str ->
+        (* we do not start the roundtrip from the string because its details may change
+           in the output *)
+        let t = of_json_string str in
+        [%test_result: t] (to_json_string t |> of_json_string) ~expect:t
+      )
     in
-       test V1.t_of_json V1.json_of_t
-    && test V2.t_of_json V2.json_of_t
-    && test V2.t_of_json V1.json_of_t
+    roundtrip V1.t_of_json V1.json_of_t;
+    roundtrip V2.t_of_json V2.json_of_t;
+    roundtrip V2.t_of_json V1.json_of_t
   ;;
 
-  let%test_unit _ = assert(test_json 5 typerep_of_int)
-  let%test_unit _ = assert(test_json 'm' typerep_of_char)
-  let%test_unit _ = assert(test_json 5.0 typerep_of_float)
-  let%test_unit _ = assert(test_json "hello, world" typerep_of_string)
-  let%test_unit _ = assert(test_json true typerep_of_bool)
-  let%test_unit _ = assert(test_json false typerep_of_bool)
-  let%test_unit _ = assert(test_json () typerep_of_unit)
-  let%test_unit _ = assert(test_json None (typerep_of_option typerep_of_int))
-  let%test_unit _ = assert(test_json (Some 42) (typerep_of_option typerep_of_int))
-  let%test_unit _ = assert(test_json [1;2;3;4;5] (typerep_of_list typerep_of_int))
-  let%test_unit _ = assert(test_json [|6;7;8;9;19|] (typerep_of_array typerep_of_int))
+  let%test_unit _ = test (module Int        ) [5]                       ["2"]
+  let%test_unit _ = test (module Char       ) ['m']                     ["\"m\""]
+  let%test_unit _ = test (module Float      ) [5.0]                     ["2"; "2.0"]
+  let%test_unit _ = test (module String     ) ["hello, world"]          ["\"2\""]
+  let%test_unit _ = test (module Bool       ) [true; false]             ["true"; "false"]
+  let%test_unit _ = test (module Unit       ) [()]                      []
+  let%test_unit _ = test (module Int_option ) [ None; Some 42 ]         ["42"]
+  let%test_unit _ = test (module Int_list   ) [[ 1; 2; 3; 4; 5 ]]       ["[1,2,3]"]
+  let%test_unit _ = test (module Int_array  ) [[|6; 7; 8; 9; 10|]]      ["[1,2,3]"]
+  let%test_unit _ = test (module Test_tuple2) [(52, 78)]                ["[1,2]"]
   let%test_unit _ =
-    assert(test_json (52,78)
-      (typerep_of_tuple2 typerep_of_int typerep_of_int))
+    test (module Test_tuple4) [(100, 3.14, "hi", true)] ["[100,3.14,\"hi\",true]"]
   let%test_unit _ =
-    assert(test_json (52,78,89)
-      (typerep_of_tuple3 typerep_of_int typerep_of_int typerep_of_int))
+    test (module Test_variant) Test_variant.[ Foo; Bar 9; Baz (6.2, 7.566)] []
   let%test_unit _ =
-    assert(test_json (52,78,89, "hi")
-      (typerep_of_tuple4
-        typerep_of_int typerep_of_int
-        typerep_of_int typerep_of_string))
+    test (module Test_record)
+      Test_record.[ { foo = 5; bar = Some 76.2 } ]
+      ["{ \"foo\": 5, \"bar\": 76.2 }"]
   let%test_unit _ =
-    assert(test_json (52,78,89, "hi",false)
-      (typerep_of_tuple5
-        typerep_of_int typerep_of_int
-        typerep_of_int typerep_of_string typerep_of_bool))
-  let%test_unit _ = assert(test_json Foo typerep_of_x)
-  let%test_unit _ = assert(test_json (Bar 9) typerep_of_x)
-  let%test_unit _ = assert(test_json (Baz (6.2, 7.566)) typerep_of_x)
-  let%test_unit _ = assert(test_json {foo=5;bar=76.2} typerep_of_mrec)
-  let%test_unit _ =
-    assert(test_json
-      (Node ((Node ((Node (Leaf, Leaf)), Leaf)), Leaf)) typerep_of_tree)
+    test (module Test_tree) Test_tree.[ Node ((Node ((Node (Leaf, Leaf)), Leaf)), Leaf) ]
+      []
 end)
 
 let%test_module _ = (module struct

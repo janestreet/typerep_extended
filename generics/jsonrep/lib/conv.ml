@@ -30,7 +30,10 @@ let char_of_json = function
   | json -> raise (Type_mismatch ("Char", json))
 
 let float_of_json = function
-  | Jt.Float n -> n
+  | Jt.Float f -> f
+  (* A float value written as "20" will be parsed into a [Jt.Int], but we still want
+     a float value out of it. *)
+  | Jt.Int n -> Float.of_int n
   | json -> raise (Type_mismatch ("Float", json))
 
 let string_of_json = function

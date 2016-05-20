@@ -241,9 +241,12 @@ module V2 = Make(struct
         try Field.traverse field json_value
         with
         | exn ->
-          failwiths "Exception while deserializing field"
-            (label, json, exn)
-            [%sexp_of: string * Jt.t * Exn.t]
+          raise_s
+            [%sexp "Exception while deserializing record"
+                 , (sprintf "PROBLEM FIELD: %s" label : string)
+                 , (json : Jt.t)
+                 , (exn  : Exn.t)
+            ]
       in
       Record.create record { Record.get }
     ;;
@@ -281,18 +284,16 @@ module V1 = Make(struct
         let index = Field.index field in
         let json_value =
           match List.nth json_properties index with
-          | Some (json_name, json_value) ->
-            if String.equal json_name label then json_value
-            else begin
-              match Flat_map.Flat_string_map.find (Lazy.force properties) label with
-              | Some x -> x
-              | None ->
-                failwithf "Field %s is present in the destination record but not in the \
-                           source JSON." label ()
-            end
-          | _ ->
-            failwithf "Source JSON has %d fields, while destination record has more."
-              (index + 1) ()
+          | Some (json_name, json_value) when String.equal json_name label -> json_value
+          | Some _ | None ->
+            match Flat_map.Flat_string_map.find (Lazy.force properties) label with
+            | Some x -> x
+            | None ->
+              raise_s
+                [%sexp (sprintf "Field %s is present in the destination record but \
+                                 not in the source JSON." label : string)
+                     , (json : Jt.t)
+                ]
         in
         Field.traverse field json_value
       in
