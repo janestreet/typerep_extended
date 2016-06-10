@@ -2,7 +2,7 @@ OASISFormat:           0.4
 OCamlVersion:          >= 4.02.3
 FindlibVersion:        >= 1.3.2
 Name:                  typerep_extended
-Version:               113.43+70
+Version:               113.46+106
 Synopsis:              Runtime types for OCaml
 Authors:               Jane Street Group, LLC <opensource@janestreet.com>
 Copyrights:            (C) 2013-2016 Jane Street Group LLC <opensource@janestreet.com>
@@ -23,6 +23,62 @@ Description:
   not part of the base typerep library to avoid a circular dependency
   between core_kernel and typerep.
 
+Library json_typerep
+  Path:         generics/jsonrep/lib
+  Pack:         true
+  Modules:      Conv,
+                Jsonrep,
+                Std
+  BuildDepends: bin_prot,
+                core,
+                fieldslib,
+                json_wheel_ppxed,
+                ppx_assert.runtime-lib,
+                ppx_bench.runtime-lib,
+                ppx_expect.collector,
+                ppx_hash.runtime-lib,
+                ppx_inline_test.runtime-lib,
+                sexplib,
+                typerep,
+                typerep_experimental,
+                variantslib
+
+Library typerep_bin_io
+  Path:         generics/binrep/lib
+  Pack:         true
+  Modules:      Binrep,
+                Binrep_reader,
+                Binrep_size_reader,
+                Binrep_sizer,
+                Binrep_writer,
+                Std
+  BuildDepends: bin_prot,
+                core_kernel,
+                sexplib,
+                typerep,
+                typerep_extended
+
+Library typerep_experimental
+  Path:         experimental/src
+  Pack:         true
+  Modules:      Customrep,
+                Customrep_intf,
+                Std
+  BuildDepends: bin_prot,
+                core_kernel,
+                fieldslib,
+                ppx_assert.runtime-lib,
+                ppx_bench.runtime-lib,
+                ppx_expect.collector,
+                ppx_hash.runtime-lib,
+                ppx_inline_test.runtime-lib,
+                sexplib,
+                typerep,
+                typerep_bin_io,
+                typerep_extended,
+                typerep_sexp,
+                variantslib
+
 Library typerep_extended
   Path:         src
   Pack:         true
@@ -39,3 +95,14 @@ Library typerep_extended
                 core_kernel,
                 sexplib,
                 typerep
+
+Library typerep_sexp
+  Path:         generics/sexprep/lib
+  Pack:         true
+  Modules:      Sexprep,
+                Std
+  BuildDepends: bin_prot,
+                core_kernel,
+                sexplib,
+                typerep,
+                typerep_extended

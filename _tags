@@ -2,7 +2,15 @@
 <**/*>: thread
 # This prevents the implicit addition of -ppx options by ocamlfind
 <**/*>: predicate(custom_ppx)
+<generics/jsonrep/lib/*.ml>: for-pack(Json_typerep)
+<generics/binrep/lib/*.ml>: for-pack(Typerep_bin_io)
+<experimental/src/*.ml>: for-pack(Typerep_experimental)
 <src/*.ml>: for-pack(Typerep_extended)
+<generics/sexprep/lib/*.ml>: for-pack(Typerep_sexp)
+<experimental/src/*.ml{,i}>: pp(ppx-jane -dump-ast -inline-test-drop -bench-drop -inline-test-lib fake_for_drop)
+<generics/binrep/lib/*.ml{,i}>: ppx-driver(ppx_bin_prot+ppx_sexp_conv+ppx_type_conv+ppx_typerep_conv)
+<generics/jsonrep/lib/*.ml{,i}>: pp(ppx-jane -dump-ast -inline-test-drop -bench-drop -inline-test-lib fake_for_drop)
+<generics/sexprep/lib/*.ml{,i}>: ppx-driver(ppx_bin_prot+ppx_sexp_conv+ppx_type_conv+ppx_typerep_conv)
 <src/*.ml{,i}>: ppx-driver(ppx_bin_prot+ppx_sexp_conv+ppx_type_conv+ppx_typerep_conv)
 # OASIS_START
 # OASIS_STOP

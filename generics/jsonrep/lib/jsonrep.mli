@@ -1,16 +1,17 @@
 open! Core.Std
+open Json_wheel_internal.Std
 open Typerep_experimental.Std
 
 module type S = sig
-  module Of_json : Type_generic.S with type 'a t = Json.Json_type.t -> 'a
-  module Json_of : Type_generic.S with type 'a t = 'a -> Json.Json_type.t
-  val t_of_json : 'a Typerep.t -> [`generic of Json.Json_type.t -> 'a]
-  val json_of_t : 'a Typerep.t -> [`generic of 'a -> Json.Json_type.t]
+  module Of_json : Type_generic.S with type 'a t = Json_type.t -> 'a
+  module Json_of : Type_generic.S with type 'a t = 'a -> Json_type.t
+  val t_of_json : 'a Typerep.t -> [`generic of Json_type.t -> 'a]
+  val json_of_t : 'a Typerep.t -> [`generic of 'a -> Json_type.t]
   module Tagged : sig
-    module Of_json : Tagged_generic.S with type 'a t = Json.Json_type.t -> 'a
-    module Json_of : Tagged_generic.S with type 'a t = 'a -> Json.Json_type.t
-    val t_of_json : Type_struct.t -> [ `generic of Json.Json_type.t -> Tagged.t ]
-    val json_of_t : Type_struct.t -> [ `generic of Tagged.t -> Json.Json_type.t ]
+    module Of_json : Tagged_generic.S with type 'a t = Json_type.t -> 'a
+    module Json_of : Tagged_generic.S with type 'a t = 'a -> Json_type.t
+    val t_of_json : Type_struct.t -> [ `generic of Json_type.t -> Tagged.t ]
+    val json_of_t : Type_struct.t -> [ `generic of Tagged.t -> Json_type.t ]
   end
 end
 

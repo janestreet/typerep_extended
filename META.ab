@@ -6,3 +6,47 @@ archive(native) = "typerep_extended.cmxa"
 plugin(byte  ) = "typerep_extended.cma"
 plugin(native) = "typerep_extended.cmxs"
 exists_if = "typerep_extended.cma"
+
+package "binrep" (
+  version = "$(pkg_version)"
+  description = ""
+  requires = "bin_prot core_kernel sexplib typerep typerep_extended"
+  archive(byte  ) = "typerep_bin_io.cma"
+  archive(native) = "typerep_bin_io.cmxa"
+  plugin(byte  ) = "typerep_bin_io.cma"
+  plugin(native) = "typerep_bin_io.cmxs"
+  exists_if = "typerep_bin_io.cma"
+)
+
+package "experimental" (
+  version = "$(pkg_version)"
+  description = ""
+  requires = "bin_prot core_kernel fieldslib ppx_assert.runtime-lib ppx_bench.runtime-lib ppx_expect.collector ppx_hash.runtime-lib ppx_inline_test.runtime-lib sexplib typerep typerep_extended typerep_extended.binrep typerep_extended.sexprep variantslib"
+  archive(byte  ) = "typerep_experimental.cma"
+  archive(native) = "typerep_experimental.cmxa"
+  plugin(byte  ) = "typerep_experimental.cma"
+  plugin(native) = "typerep_experimental.cmxs"
+  exists_if = "typerep_experimental.cma"
+)
+
+package "jsonrep" (
+  version = "$(pkg_version)"
+  description = ""
+  requires = "bin_prot core fieldslib json_wheel_ppxed ppx_assert.runtime-lib ppx_bench.runtime-lib ppx_expect.collector ppx_hash.runtime-lib ppx_inline_test.runtime-lib sexplib typerep typerep_extended.experimental variantslib"
+  archive(byte  ) = "json_typerep.cma"
+  archive(native) = "json_typerep.cmxa"
+  plugin(byte  ) = "json_typerep.cma"
+  plugin(native) = "json_typerep.cmxs"
+  exists_if = "json_typerep.cma"
+)
+
+package "sexprep" (
+  version = "$(pkg_version)"
+  description = ""
+  requires = "bin_prot core_kernel sexplib typerep typerep_extended"
+  archive(byte  ) = "typerep_sexp.cma"
+  archive(native) = "typerep_sexp.cmxa"
+  plugin(byte  ) = "typerep_sexp.cma"
+  plugin(native) = "typerep_sexp.cmxs"
+  exists_if = "typerep_sexp.cma"
+)

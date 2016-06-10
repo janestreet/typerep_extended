@@ -1,5 +1,6 @@
 open Core.Std
-module Jt = Json.Json_type
+open Json_wheel_internal.Std
+module Jt = Json_type
 
 exception Type_mismatch of string * Jt.t
 
