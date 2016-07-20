@@ -495,8 +495,6 @@ let reduce t =
   let reduced = remove_dead_links shared in
   reduced
 
-exception Invalid_recursive_typestruct of Name.t * t [@@deriving sexp]
-
 let sort_variant_cases cases =
   let cmp (variant, _) (variant', _) =
     String.compare variant.Variant.label variant'.Variant.label
