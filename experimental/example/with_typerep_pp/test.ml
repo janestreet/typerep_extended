@@ -42,10 +42,14 @@ module V = S.Variant.Kind
 
 let vr index name array =
   let array = Farray.of_array array ~f:(fun _ x -> x) in
-  { S.Variant. label=name ; ocaml_repr = hash_variant name ; index }, array
-let vu index ocaml_repr name array =
+  { S.Variant. label=name ; ocaml_repr = hash_variant name ; index ; args_labels = []}
+, array
+;;
+
+let vu ?(args_labels = []) index ocaml_repr name array =
   let array = Farray.of_array array ~f:(fun _ x -> x) in
-  { S.Variant. label=name ; index ; ocaml_repr }, array
+  { S.Variant. label=name ; index ; ocaml_repr; args_labels }, array
+;;
 
 let fields t = Farray.of_array t ~f:(fun index (label, value, is_mutable) ->
   let field = { S.Field.index ; label; is_mutable } in
@@ -87,7 +91,7 @@ let%test_module _ = (module struct
         try
           Some (Type_struct.Versioned.serialize ~version:vn typestruct)
         with
-        | Type_struct.Versioned.Not_downgradable _ -> None
+        | Type_struct.Not_downgradable _ -> None
       in
       match versioned with
       | Some versioned ->
@@ -101,8 +105,10 @@ let%test_module _ = (module struct
       v2;
       v3;
       v4;
+      v5;
     ]);
     !result
+  ;;
 
   (* simple cases *)
 
@@ -590,6 +596,35 @@ let%test_module _ = (module struct
     |]) in
     assert (check exp M.typerep_of_t);
     assert (check exp [%typerep_of: M.t])
+  ;;
+
+  (* inline record *)
+
+  let%test_unit _ =
+    let module M : sig
+      type t [@@deriving typerep]
+    end = struct
+      type t = A of { x : int; y : string } [@@deriving typerep]
+    end in
+    let exp = S.Variant (usual, tags [|
+      vu 0 0 "A" [| S.Int ; S.String |] ~args_labels:[ "x" ; "y" ] ;
+    |]) in
+    assert (check exp M.typerep_of_t);
+  ;;
+
+  let%test_unit _ =
+    (* [Type_struct.to_typerep] makes the assumptions that those types have the same
+       runtime representation.  Test this separately. *)
+    let module M1 = struct
+      type t = A of { x : int; y : string }
+    end in
+    let module M2 = struct
+      type t = A of int * string
+    end in
+    let m1 = M1.A { x = 42; y = "y" } in
+    let m2 = M2.A (42, "y") in
+    assert (Obj.tag (Obj.repr m1) = Obj.tag (Obj.repr m2));
+    assert (Pervasives.(=) (Obj.repr m1) (Obj.repr m2));
   ;;
 
   (* polymorphism *)

@@ -8,8 +8,7 @@ module Transaction_type = struct
     | Order
 
     module Typename_of_t = Make_typename.Make0(struct
-      type non_rec = t
-      type t = non_rec
+      type nonrec t = t
       let name = "Combination.Transaction_type.V1.t"
     end)
 
@@ -21,6 +20,7 @@ module Transaction_type = struct
           label = "Trade";
           rep = typerep_of_tuple0;
           arity = 0;
+          args_labels = [];
           index = 0;
           ocaml_repr = 0;
           tyid = Typename.create ();
@@ -31,6 +31,7 @@ module Transaction_type = struct
           label = "Order";
           rep = typerep_of_tuple0;
           arity = 0;
+          args_labels = [];
           index = 1;
           ocaml_repr = 1;
           tyid = Typename.create ();
@@ -63,8 +64,7 @@ module Transaction_type = struct
     | Journal of string * string
 
     module Typename_of_t = Make_typename.Make0(struct
-      type non_rec = t
-      type t = non_rec
+      type nonrec t = t
       let name = "Combination.Transaction_type.V2.t"
     end)
 
@@ -76,6 +76,7 @@ module Transaction_type = struct
           label = "Trade";
           rep = typerep_of_tuple0;
           arity = 0;
+          args_labels = [];
           index = 0;
           ocaml_repr = 0;
           tyid = Typename.create ();
@@ -86,6 +87,7 @@ module Transaction_type = struct
           label = "Order";
           rep = typerep_of_tuple0;
           arity = 0;
+          args_labels = [];
           index = 1;
           ocaml_repr = 1;
           tyid = Typename.create ();
@@ -96,6 +98,7 @@ module Transaction_type = struct
           label = "Journal";
           rep = typerep_of_tuple2 typerep_of_string typerep_of_string;
           arity = 2;
+          args_labels = [];
           index = 1;
           ocaml_repr = 0;
           tyid = Typename.create ();
@@ -131,8 +134,7 @@ module V1 = struct
   }
 
   module Typename_of_t = Make_typename.Make0(struct
-    type non_rec = t
-    type t = non_rec
+    type nonrec t = t
     let name = "Combination.V1.t"
   end)
 
@@ -191,8 +193,7 @@ module V2 = struct
   }
 
   module Typename_of_t = Make_typename.Make0(struct
-    type non_rec = t
-    type t = non_rec
+    type nonrec t = t
     let name = "Combination.V2.t"
   end)
 
@@ -260,8 +261,7 @@ type t =
 | V2 of V2.t
 
 module Typename_of_t = Make_typename.Make0(struct
-  type non_rec = t
-  type t = non_rec
+  type nonrec t = t
   let name = "Combination.t"
 end)
 
@@ -273,6 +273,7 @@ let typerep_of_t : t Typerep.t =
       label = "V1";
       rep = V1.typerep_of_t;
       arity = 1;
+      args_labels = [];
       index = 0;
       ocaml_repr = 0;
       tyid = Typename.create ();
@@ -283,6 +284,7 @@ let typerep_of_t : t Typerep.t =
       label = "V2";
       rep = V2.typerep_of_t;
       arity = 1;
+      args_labels = [];
       index = 1;
       ocaml_repr = 1;
       tyid = Typename.create ();

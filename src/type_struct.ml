@@ -1,6 +1,8 @@
 open! Core_kernel.Std
 open Typerep_lib.Std
 
+exception Not_downgradable of Sexp.t [@@deriving sexp]
+
 module Name = struct
   include Int
   let typerep_of_t = typerep_of_int
@@ -13,73 +15,115 @@ end
 module Variant = struct
   module Kind = struct
     type t =
-    | Polymorphic
-    | Usual
+      | Polymorphic
+      | Usual
     [@@deriving sexp, typerep, bin_io]
 
     let is_polymorphic = function
       | Polymorphic -> true
       | Usual -> false
+
     let equal a b =
       match a with
       | Polymorphic -> b = Polymorphic
       | Usual -> b = Usual
   end
-  module V1 = struct
-    type t = {
-      name : string;
-      repr : int;
-    } [@@deriving sexp, bin_io, typerep]
+
+  module V3 = struct
+    type t =
+      { label       : string
+      ; index       : int
+      ; ocaml_repr  : int
+      ; args_labels : string list [@default []] [@sexp_drop_if List.is_empty]
+      }
+    [@@deriving sexp, bin_io, typerep]
   end
+
+  module Model = V3
+
   module V2 = struct
-    type t = {
-      label : string;
-      index : int;
-      ocaml_repr : int;
-    } [@@deriving sexp, bin_io, typerep]
+    type t =
+      { label      : string
+      ; index      : int
+      ; ocaml_repr : int
+      }
+    [@@deriving sexp, bin_io, typerep]
+
+    let of_model ({ Model.label; index; ocaml_repr; args_labels } as model) =
+      match args_labels with
+      | [] -> { label; index; ocaml_repr }
+      | (_::_) -> raise (Not_downgradable (model |> Model.sexp_of_t))
+    ;;
+
+    let to_model { label; index; ocaml_repr } =
+      { Model.label; index; ocaml_repr; args_labels = [] }
+    ;;
   end
-  include V2
+
+  module V1 = struct
+    type t =
+      { name : string
+      ; repr : int
+      }
+    [@@deriving sexp, bin_io, typerep]
+
+    let of_model kind (t : Model.t) =
+      let name = t.label in
+      let repr = if Kind.is_polymorphic kind then t.ocaml_repr else t.index in
+      match t.args_labels with
+      | [] -> { name ; repr }
+      | _::_ -> raise (Not_downgradable (Model.sexp_of_t t))
+    ;;
+
+    let to_model kind index this all v1 =
+      if Kind.is_polymorphic kind
+      then
+        { Model.
+          label = v1.name
+        ; index
+        ; ocaml_repr = v1.repr
+        ; args_labels = []
+        }
+      else
+        let ocaml_repr =
+          let no_arg = Farray.is_empty this in
+          let rec count pos acc =
+            if pos = index then acc
+            else
+              let _, args = Farray.get all pos in
+              let acc = if no_arg = Farray.is_empty args then succ acc else acc in
+              count (succ pos) acc
+          in
+          count 0 0
+        in
+        { Model.
+          label = v1.name
+        ; index = (if index <> v1.repr then assert false; index)
+        ; ocaml_repr
+        ; args_labels = []
+        }
+    ;;
+  end
+
+  include Model
   let label t = t.label
   let index t = t.index
   let ocaml_repr t = t.ocaml_repr
-  let to_v1 kind t =
-    let name = t.label in
-    let repr = if Kind.is_polymorphic kind then t.ocaml_repr else t.index in
-    { V1.name ; repr }
-  let of_v1 kind index this all v1 =
-    if Kind.is_polymorphic kind
-    then
-      { label = v1.V1.name;
-        index;
-        ocaml_repr = v1.V1.repr; }
-    else
-      let ocaml_repr =
-        let no_arg = Farray.is_empty this in
-        let rec count pos acc =
-          if pos = index then acc
-          else
-            let _, args = Farray.get all pos in
-            let acc = if no_arg = Farray.is_empty args then succ acc else acc in
-            count (succ pos) acc
-        in
-        count 0 0
-      in
-      { label = v1.V1.name;
-        index = (if index <> v1.V1.repr then assert false; index);
-        ocaml_repr;
-      }
+  let args_labels t = t.args_labels
 
   module Option = struct
-    let none = {
-      index = 0;
-      ocaml_repr = 0;
-      label = "None";
-    }
-    let some = {
-      index = 1;
-      ocaml_repr = 0;
-      label = "Some";
-    }
+    let none =
+      { index       = 0
+      ; ocaml_repr  = 0
+      ; label       = "None"
+      ; args_labels = []
+      }
+    let some =
+      { index       = 1
+      ; ocaml_repr  = 0
+      ; label       = "Some"
+      ; args_labels = []
+      }
   end
 end
 
@@ -613,9 +657,13 @@ let are_equivalent a b =
         let is_polymorphic = Variant.Kind.is_polymorphic infos.Variant_infos.kind in
         let cases = if is_polymorphic then sort_variant_cases cases else cases in
         let cases' = if is_polymorphic then sort_variant_cases cases' else cases' in
-        let eq (variant, args) (variant', args') =
-          Int.equal variant.Variant.ocaml_repr variant'.Variant.ocaml_repr
-          && String.equal variant.Variant.label variant'.Variant.label
+        let eq ({ Variant. ocaml_repr; label; args_labels; index = _ }, args)
+              ((variant : Variant.t), args') =
+          Int.equal ocaml_repr variant.ocaml_repr
+          && String.equal label variant.label
+          && equivalent_array String.equal
+               (Farray.of_list args_labels)
+               (Farray.of_list variant.args_labels)
           && equivalent_array aux args args'
         in
         equivalent_array eq cases cases'
@@ -770,9 +818,10 @@ let least_upper_bound_exn a b =
               | None ->
                 let variant =
                   { Variant.
-                    label      = variant_b.label
-                  ; ocaml_repr = variant_b.ocaml_repr
-                  ; index      = !index
+                    label       = variant_b.label
+                  ; ocaml_repr  = variant_b.ocaml_repr
+                  ; index       = !index
+                  ; args_labels = []
                   }
                 in
                 incr index;
@@ -911,18 +960,22 @@ module Internal_generic = Type_generic.Make(struct
         let index = Tag.index tag in
         let ocaml_repr = Tag.ocaml_repr tag in
         let arity = Tag.arity tag in
-        let variant = {
-          Type_struct_variant.
-          label;
-          ocaml_repr;
-          index;
-        } in
+        let args_labels = Tag.args_labels tag in
+        let variant =
+          { Type_struct_variant.
+            label
+          ; ocaml_repr
+          ; index
+          ; args_labels
+          }
+        in
         let str = Tag.traverse tag in
         let args = variant_args_of_type_struct ~arity str in
         variant, args
     )
     in
     Variant (infos, tags)
+  ;;
 
   module Named = struct
     module Context = struct
@@ -1422,16 +1475,18 @@ module To_typerep = struct
                 (Typename.create () : exist Typename.t)
             ) typerep_of_tag
           in
-          let tag = {
-            Typerep.Tag_internal.
-            label;
-            rep = typerep_of_tag;
-            arity;
-            index;
-            ocaml_repr;
-            tyid;
-            create;
-          } in
+          let tag =
+            { Typerep.Tag_internal.
+              label
+            ; rep = typerep_of_tag
+            ; arity
+            ; args_labels = variant.args_labels
+            ; index
+            ; ocaml_repr
+            ; tyid
+            ; create
+            }
+          in
           Typerep.Variant_internal.Tag (Typerep.Tag.internal_use_only tag)
         ) in
         let module Typename_of_t = Make_typename.Make0(struct
@@ -1587,19 +1642,21 @@ let to_typerep = To_typerep.to_typerep
 
 module Versioned = struct
   module Version = struct
-    type t = [
-    | `v0
-    | `v1
-    | `v2
-    | `v3
-    | `v4
-    ] [@@deriving bin_io, sexp, typerep]
+    type t =
+      [ `v0
+      | `v1
+      | `v2
+      | `v3
+      | `v4
+      | `v5
+      ]
+    [@@deriving bin_io, sexp, typerep]
     let v1 = `v1
     let v2 = `v2
     let v3 = `v3
     let v4 = `v4
+    let v5 = `v5
   end
-  exception Not_downgradable of Sexp.t [@@deriving sexp]
   module type V_sig = sig
     type t
     [@@deriving sexp, bin_io, typerep]
@@ -1666,7 +1723,7 @@ module Versioned = struct
       | T.Variant (info, tags) ->
         let kind = info.Variant_infos.kind in
         let map (variant, t) =
-          let variant_v1 = Variant.to_v1 kind variant in
+          let variant_v1 = Variant.V1.of_model kind variant in
           variant_v1, Farray.map ~f:serialize t
         in
         Variant (kind, Farray.map ~f:map tags)
@@ -1702,7 +1759,7 @@ module Versioned = struct
       | Variant (kind, tags) ->
         let infos = { Variant_infos.kind } in
         let mapi index (variant_v1, t) =
-          let variant = Variant.of_v1 kind index t tags variant_v1 in
+          let variant = Variant.V1.to_model kind index t tags variant_v1 in
           variant, Farray.map ~f:unserialize t
         in
         T.Variant (infos, Farray.mapi ~f:mapi tags)
@@ -1758,7 +1815,7 @@ module Versioned = struct
       | T.Variant (info, tags) ->
         let kind = info.Variant_infos.kind in
         let map (variant, t) =
-          let variant_v1 = Variant.to_v1 kind variant in
+          let variant_v1 = Variant.V1.of_model kind variant in
           variant_v1, Farray.map ~f:serialize t
         in
         Variant (kind, Farray.map ~f:map tags)
@@ -1796,7 +1853,7 @@ module Versioned = struct
       | Variant (kind, tags) ->
         let infos = { Variant_infos.kind } in
         let mapi index (variant_v1, t) =
-          let variant = Variant.of_v1 kind index t tags variant_v1 in
+          let variant = Variant.V1.to_model kind index t tags variant_v1 in
           variant, Farray.map ~f:unserialize t
         in
         T.Variant (infos, Farray.mapi ~f:mapi tags)
@@ -1853,7 +1910,7 @@ module Versioned = struct
       | T.Variant (infos, tags) ->
         let kind = infos.Variant_infos.kind in
         let map (variant, t) =
-          let variant_v1 = Variant.to_v1 kind variant in
+          let variant_v1 = Variant.V1.of_model kind variant in
           variant_v1, Farray.map ~f:serialize t
         in
         Variant (infos, Farray.map ~f:map tags)
@@ -1887,7 +1944,7 @@ module Versioned = struct
       | Variant (infos, tags) ->
         let kind = infos.Variant_infos.kind in
         let mapi index (variant_v1, t) =
-          let variant = Variant.of_v1 kind index t tags variant_v1 in
+          let variant = Variant.V1.to_model kind index t tags variant_v1 in
           variant, Farray.map ~f:unserialize t
         in
         T.Variant (infos, Farray.mapi ~f:mapi tags)
@@ -1897,7 +1954,93 @@ module Versioned = struct
   end
 
   (* Switching to Variant.V2 and Field.V2.t *)
-  module V4 : V_sig with type t = T.t = struct
+  module V4 : V_sig = struct
+    type t =
+      | Int
+      | Int32
+      | Int64
+      | Nativeint
+      | Char
+      | Float
+      | String
+      | Bool
+      | Unit
+      | Option of t
+      | List of t
+      | Array of t
+      | Lazy of t
+      | Ref of t
+      | Tuple of t Farray.t
+      | Record of Record_infos.V1.t * (Field.V2.t * t) Farray.t
+      | Variant of Variant_infos.V1.t * (Variant.V2.t * t Farray.t) Farray.t
+      | Named of Name.t * t option
+    [@@deriving bin_io, sexp, typerep]
+
+    let rec serialize = function
+      | T.Int       -> Int
+      | T.Int32     -> Int32
+      | T.Int64     -> Int64
+      | T.Nativeint -> Nativeint
+      | T.Char      -> Char
+      | T.Float     -> Float
+      | T.String    -> String
+      | T.Bool      -> Bool
+      | T.Unit      -> Unit
+      | T.Option t  -> Option (serialize t)
+      | T.List t    -> List (serialize t)
+      | T.Array t   -> Array (serialize t)
+      | T.Lazy t    -> Lazy (serialize t)
+      | T.Ref t     -> Ref (serialize t)
+      | T.Record (infos, fields) ->
+        let map (field, t) = field, serialize t in
+        let fields = Farray.map ~f:map fields in
+        Record (infos, fields)
+      | T.Tuple args -> Tuple (Farray.map ~f:serialize args)
+      | T.Variant (infos, tags) ->
+        let map (variant, t) =
+          let variant = Variant.V2.of_model variant in
+          variant, Farray.map ~f:serialize t
+        in
+        Variant (infos, Farray.map ~f:map tags)
+      | T.Named (name, content) ->
+        let content = Option.map ~f:serialize content in
+        Named (name, content)
+    ;;
+
+    let rec unserialize = function
+      | Int       -> T.Int
+      | Int32     -> T.Int32
+      | Int64     -> T.Int64
+      | Nativeint -> T.Nativeint
+      | Char      -> T.Char
+      | Float     -> T.Float
+      | String    -> T.String
+      | Bool      -> T.Bool
+      | Unit      -> T.Unit
+      | Option t  -> T.Option (unserialize t)
+      | List t    -> T.List (unserialize t)
+      | Array t   -> T.Array (unserialize t)
+      | Lazy t    -> T.Lazy (unserialize t)
+      | Ref t     -> T.Ref (unserialize t)
+      | Record (infos, fields) ->
+        let map (field, t) = field, unserialize t in
+        let fields = Farray.map ~f:map fields in
+        T.Record (infos, fields)
+      | Tuple args -> T.Tuple (Farray.map ~f:unserialize args)
+      | Variant (infos, tags) ->
+        let map (variant, t) =
+          let variant = Variant.V2.to_model variant in
+          variant, Farray.map ~f:unserialize t
+        in
+        T.Variant (infos, Farray.map ~f:map tags)
+      | Named (name, content) ->
+        let content = Option.map ~f:unserialize content in
+        T.Named (name, content)
+    ;;
+  end
+
+  (* Switching to Variant.V3 *)
+  module V5 : V_sig with type t = T.t = struct
     type t = T.t =
     | Int
     | Int32
@@ -1915,7 +2058,7 @@ module Versioned = struct
     | Ref of t
     | Tuple of t Farray.t
     | Record of Record_infos.V1.t * (Field.V2.t * t) Farray.t
-    | Variant of Variant_infos.V1.t * (Variant.V2.t * t Farray.t) Farray.t
+    | Variant of Variant_infos.V1.t * (Variant.V3.t * t Farray.t) Farray.t
     | Named of Name.t * t option
     [@@deriving sexp, bin_io]
     let typerep_of_t = T.typerep_of_t
@@ -1926,13 +2069,15 @@ module Versioned = struct
     let unserialize t = t
   end
 
-  type t = [
-  | `V0 of V0.t
-  | `V1 of V1.t
-  | `V2 of V2.t
-  | `V3 of V3.t
-  | `V4 of V4.t
-  ] [@@deriving bin_io, sexp, typerep]
+  type t =
+    [ `V0 of V0.t
+    | `V1 of V1.t
+    | `V2 of V2.t
+    | `V3 of V3.t
+    | `V4 of V4.t
+    | `V5 of V5.t
+    ]
+  [@@deriving bin_io, sexp, typerep]
 
   let aux_unserialize = function
     | `V0 v0 -> V0.unserialize v0
@@ -1940,14 +2085,18 @@ module Versioned = struct
     | `V2 v2 -> V2.unserialize v2
     | `V3 v3 -> V3.unserialize v3
     | `V4 v4 -> V4.unserialize v4
+    | `V5 v5 -> V5.unserialize v5
+  ;;
 
-  let serialize ~version v4 =
+  let serialize ~version t =
     match version with
-    | `v0 -> `V0 (V0.serialize v4)
-    | `v1 -> `V1 (V1.serialize v4)
-    | `v2 -> `V2 (V2.serialize v4)
-    | `v3 -> `V3 (V3.serialize v4)
-    | `v4 -> `V4 (V4.serialize v4)
+    | `v0 -> `V0 (V0.serialize t)
+    | `v1 -> `V1 (V1.serialize t)
+    | `v2 -> `V2 (V2.serialize t)
+    | `v3 -> `V3 (V3.serialize t)
+    | `v4 -> `V4 (V4.serialize t)
+    | `v5 -> `V5 (V5.serialize t)
+  ;;
 
   let version = function
     | `V0 _ -> `v0
@@ -1955,6 +2104,8 @@ module Versioned = struct
     | `V2 _ -> `v2
     | `V3 _ -> `v3
     | `V4 _ -> `v4
+    | `V5 _ -> `v5
+  ;;
 
   let change_version ~version:requested t =
     if version t = requested

@@ -10,16 +10,23 @@ module Sizer           = Binrep_sizer
 module Writer          = Binrep_writer
 module Reader          = Binrep_reader
 module Size_reader     = Binrep_size_reader
+module Shaper          = Binrep_shaper
 
 let bin_size_t         = Sizer.of_typerep
 let bin_writer_t       = Writer.of_typerep
 let bin_reader_t       = Reader.of_typerep
 let bin_size_reader_t  = Size_reader.of_typerep
+let bin_shape_t        = Shaper.of_typerep
 
 type 'a size_reader = buf -> pos_ref : pos_ref -> unit
 
 module Make_binable(X:sig type t val typerep_of_t : t Typerep.t end) = struct
   type t = X.t
+
+  let bin_shape_t =
+    let `generic shape = bin_shape_t X.typerep_of_t in
+    shape ()
+
   let bin_size_t =
     let `generic clos = bin_size_t X.typerep_of_t in
     clos
@@ -37,8 +44,10 @@ module Make_binable(X:sig type t val typerep_of_t : t Typerep.t end) = struct
   let __bin_read_t__ = bin_reader_t.Type_class.vtag_read
   let bin_t =
     { Type_class.
-      reader = bin_reader_t;
-      writer = bin_writer_t; }
+      reader = bin_reader_t
+    ; writer = bin_writer_t
+    ; shape  = bin_shape_t
+    }
 end
 
 let make_binable (type a) (typerep_of_t : a Typerep.t) =
@@ -54,6 +63,14 @@ module Tagged = struct
       Tagged_generic.Make_output(struct type t = int end)(Sizer.Computation)
     in
     Sizer.of_typestruct
+
+  let bin_shape_t =
+    let module Shaper =
+      Tagged_generic.Make_non_arrow_output
+        (struct type t = unit -> Bin_prot.Shape.t end)
+        (Shaper.Computation)
+    in
+    Shaper.of_typestruct
 
   let bin_size_reader_t =
     let module Size_reader =
@@ -112,10 +129,16 @@ module Tagged = struct
   let bin_t str =
     let `generic writer = Tagged_writer.of_typestruct str in
     let `generic reader = Tagged_reader.of_typestruct str in
-    `generic { Type_class. reader ; writer }
+    let `generic shape  = bin_shape_t str in
+    `generic { Type_class. reader ; writer; shape = shape () }
+  ;;
 
   module Make_binable(X:sig val typestruct_of_t : Type_struct.t end) = struct
     type t = Tagged.t
+    let bin_shape_t =
+      let `generic shape = bin_shape_t X.typestruct_of_t in
+      shape ()
+
     let bin_size_t =
       let `generic clos = bin_size_t X.typestruct_of_t in
       clos
@@ -133,8 +156,10 @@ module Tagged = struct
     let __bin_read_t__ = bin_reader_t.Type_class.vtag_read
     let bin_t =
       { Type_class.
-        reader = bin_reader_t;
-        writer = bin_writer_t; }
+        reader = bin_reader_t
+      ; writer = bin_writer_t
+      ; shape  = bin_shape_t
+      }
   end
 
   let make_binable typestruct_of_t =

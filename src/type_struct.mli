@@ -4,6 +4,10 @@
 open! Core_kernel.Std
 open Typerep_lib.Std
 
+(** Exception raised when trying to downgrade a type struct that makes use of new features
+    or info not representable in a former version. *)
+exception Not_downgradable of Sexp.t [@@deriving sexp]
+
 module Name : sig
   type t = int [@@deriving sexp, bin_io]
   include Hashable.S with type t := t
@@ -13,20 +17,23 @@ end
 module Variant : sig
   module Kind : sig
     type t =
-    | Polymorphic
-    | Usual
+      | Polymorphic
+      | Usual
     [@@deriving sexp, bin_io]
     val is_polymorphic : t -> bool
     val equal : t -> t -> bool
   end
-  type t = {
-    label : string;
-    index : int;
-    ocaml_repr : int;
-  } [@@deriving sexp_of]
+  type t =
+    { label       : string
+    ; index       : int
+    ; ocaml_repr  : int
+    ; args_labels : string list
+    }
+  [@@deriving sexp_of]
   val label : t -> string
   val index : t -> int
   val ocaml_repr : t -> int
+  val args_labels : t -> string list
   module Option : sig
     val some : t
     val none : t
@@ -209,13 +216,13 @@ module Versioned : sig
     val v2 : t
     val v3 : t
     val v4 : t
+    val v5 : t
   end
 
   val version : t -> Version.t
 
   val unserialize : t -> type_struct
 
-  exception Not_downgradable of Sexp.t [@@deriving sexp]
   (** may raise iif the current value is not_downgradable. (use of new feature) *)
   val serialize : version:Version.t -> type_struct -> t
 

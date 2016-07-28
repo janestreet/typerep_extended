@@ -8,6 +8,7 @@ module Sizer : Type_generic.S with type 'a t = 'a Bin_prot.Size.sizer
 *)
 module Writer : Type_generic.S with type 'a t = 'a Bin_prot.Type_class.writer
 module Reader : Type_generic.S with type 'a t = 'a Bin_prot.Type_class.reader
+module Shaper : Type_generic.S with type 'a t = unit -> Bin_prot.Shape.t
 
 type 'a size_reader = Bin_prot.Common.buf -> pos_ref : Bin_prot.Common.pos_ref -> unit
 module Size_reader : sig
@@ -25,6 +26,7 @@ val bin_size_t        : 'a Typerep.t -> [ `generic of 'a Bin_prot.Size.sizer ]
 val bin_writer_t      : 'a Typerep.t -> [ `generic of 'a Bin_prot.Type_class.writer ]
 val bin_reader_t      : 'a Typerep.t -> [ `generic of 'a Bin_prot.Type_class.reader ]
 val bin_size_reader_t : 'a Typerep.t -> [ `generic of 'a size_reader ]
+val bin_shape_t       : 'a Typerep.t -> [ `generic of unit -> Bin_prot.Shape.t ]
 
 module Make_binable(X:Typerepable.S0) : Binable.S
   with type t := X.t
@@ -39,6 +41,7 @@ module Tagged : sig
   val __bin_read_t__ : Type_struct.t -> [ `generic of (int->Tagged.t) Read.reader]
   val bin_writer_t   : Type_struct.t -> [ `generic of Tagged.t Type_class.writer ]
   val bin_reader_t   : Type_struct.t -> [ `generic of Tagged.t Type_class.reader ]
+  val bin_shape_t    : Type_struct.t -> [ `generic of unit -> Shape.t ]
   val bin_t          : Type_struct.t -> [ `generic of Tagged.t Type_class.t ]
 
   val bin_size_reader_t : Type_struct.t -> [ `generic of Tagged.t size_reader ]

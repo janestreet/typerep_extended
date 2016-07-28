@@ -172,16 +172,17 @@ module Make_advanced
               Variant.pack variant ~args
             )
           in
-          X.Tag.internal_use_only {
-            X.Tag_internal.
-            label;
-            rep = of_typestruct str;
-            arity;
-            index;
-            ocaml_repr;
-            tyid = Typename.create ();
-            create;
-          }
+          X.Tag.internal_use_only
+            { X.Tag_internal.
+              label
+            ; rep = of_typestruct str
+            ; arity
+            ; args_labels = variant.args_labels
+            ; index
+            ; ocaml_repr
+            ; tyid = Typename.create ()
+            ; create
+            }
         ) in
         let polymorphic = Type_struct.Variant.Kind.is_polymorphic kind in
         let value untyped =
@@ -304,8 +305,40 @@ end) : Adapter with type 'a t = 'a -> Output.t
   end)
 end
 
+module Non_arrow_output_adapter(Output:sig
+  type t
+end) : Adapter with type 'a t = Output.t
+= struct
+  type 'a t = Output.t
+  type 'a adapter = 'a t -> Tagged.t t
+
+  let conv : type a. a t -> Tagged.t t = fun t -> t
+
+  let int       = conv
+  let int32     = conv
+  let int64     = conv
+  let nativeint = conv
+  let char      = conv
+  let bool      = conv
+  let string    = conv
+  let float     = conv
+  let unit      = conv
+  let option    = conv
+  let list      = conv
+  let array     = conv
+  let ref_      = conv
+  let lazy_t    = conv
+
+  let tuple2    = conv
+  let tuple3    = conv
+  let tuple4    = conv
+  let tuple5    = conv
+end
+
 module Make_input (Input:sig type t end) = Make_advanced(Input_adapter(Input))
 module Make_output (Output:sig type t end) = Make_advanced(Output_adapter(Output))
+module Make_non_arrow_output (Output:sig type t end) =
+  Make_advanced(Non_arrow_output_adapter(Output))
 
 module Make_writer (Builder:sig
   type 'a t

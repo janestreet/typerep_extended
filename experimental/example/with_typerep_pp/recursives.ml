@@ -19,6 +19,7 @@ module M1 = struct
         label = "Leaf";
         rep = of_a;
         arity = 1;
+        args_labels = [];
         index = 0;
         ocaml_repr = 0;
         tyid = Typename.create ();
@@ -34,6 +35,7 @@ module M1 = struct
           in typerep_of_tuple3 v1 v2 v3
         );
         arity = 3;
+        args_labels = [];
         index = 1;
         ocaml_repr = 1;
         tyid = Typename.create ();

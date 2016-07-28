@@ -13,6 +13,10 @@ module Make_output(Output:sig type t end)
   (X:Type_generic.Computation with type 'a t = 'a -> Output.t)
   : S with type 'a t = 'a -> Output.t
 
+module Make_non_arrow_output(Output:sig type t end)
+  (X:Type_generic.Computation with type 'a t = Output.t)
+  : S with type 'a t = Output.t
+
 module Make_reader
   (Builder:sig type 'a t val make : ('a -> Tagged.t) -> 'a t -> Tagged.t t end)
   (X:Type_generic.Computation with type 'a t = 'a Builder.t)
@@ -59,6 +63,7 @@ module Make_advanced
 
 module Input_adapter(Input:sig type t end) : Adapter with type 'a t = Input.t -> 'a
 module Output_adapter(Output:sig type t end) : Adapter with type 'a t = 'a -> Output.t
+module Non_arrow_output_adapter(Output: sig type t end) : Adapter with type 'a t = Output.t
 module Reader_adapter(Builder:sig
   type 'a t
   val make : ('a -> Tagged.t) -> 'a t -> Tagged.t t

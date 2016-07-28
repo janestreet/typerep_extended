@@ -8,8 +8,7 @@ module M1 = struct
   | B of float
 
   module Typename_of_t = Make_typename.Make0(struct
-    type non_rec = t
-    type t = non_rec
+    type nonrec t = t
     let name = "Variants.M1.t"
   end)
 
@@ -21,6 +20,7 @@ module M1 = struct
         label = "A";
         rep = typerep_of_int;
         arity = 1;
+        args_labels = [];
         index = 0;
         ocaml_repr = 0;
         tyid = Typename.create ();
@@ -31,6 +31,7 @@ module M1 = struct
         label = "B";
         rep = typerep_of_float;
         arity = 1;
+        args_labels = [];
         index = 1;
         ocaml_repr = 1;
         tyid = Typename.create ();
@@ -64,8 +65,7 @@ module M2 = struct
   ]
 
   module Typename_of_t = Make_typename.Make0(struct
-    type non_rec = t
-    type t = non_rec
+    type nonrec t = t
     let name = "Variants.M2.t"
   end)
 
@@ -77,6 +77,7 @@ module M2 = struct
         label = "A";
         rep = typerep_of_int;
         arity = 1;
+        args_labels = [];
         index = 0;
         ocaml_repr = Typerep_obj.repr_of_poly_variant `A;
         tyid = Typename.create ();
@@ -87,6 +88,7 @@ module M2 = struct
         label = "B";
         rep = typerep_of_float;
         arity = 1;
+        args_labels = [];
         index = 1;
         ocaml_repr = Typerep_obj.repr_of_poly_variant `B;
         tyid = Typename.create ();
@@ -119,8 +121,7 @@ module M3 = struct
   | M2 of M2.t
 
   module Typename_of_t = Make_typename.Make0(struct
-    type non_rec = t
-    type t = non_rec
+    type nonrec t = t
     let name = "Variants.M3.t"
   end)
 
@@ -132,6 +133,7 @@ module M3 = struct
         label = "M1";
         rep = M1.typerep_of_t;
         arity = 1;
+        args_labels = [];
         index = 0;
         ocaml_repr = 0;
         tyid = Typename.create ();
@@ -142,6 +144,7 @@ module M3 = struct
         label = "M2";
         rep = M2.typerep_of_t;
         arity = 1;
+        args_labels = [];
         index = 1;
         ocaml_repr = 1;
         tyid = Typename.create ();
@@ -187,6 +190,7 @@ module P1 = struct
         label = "A";
         rep = of_p1;
         arity = 1;
+        args_labels = [];
         index = 0;
         ocaml_repr = Typerep_obj.repr_of_poly_variant `A;
         tyid = Typename.create ();
@@ -197,6 +201,7 @@ module P1 = struct
         label = "B";
         rep = typerep_of_float;
         arity = 1;
+        args_labels = [];
         index = 1;
         ocaml_repr = Typerep_obj.repr_of_poly_variant `B;
         tyid = Typename.create ();
@@ -244,6 +249,7 @@ module I1 = struct
                label = "A";
                rep = typerep_of_tuple0;
                arity = 0;
+               args_labels = [];
                index = 0;
                ocaml_repr = Typerep_obj.repr_of_poly_variant `A;
                tyid = typename_of_tuple0;
@@ -265,6 +271,7 @@ module I1 = struct
              value;
            }));
         arity = 1;
+        args_labels = [];
         index = 0;
         ocaml_repr = 0;
         tyid = Typename.create ();
@@ -277,6 +284,46 @@ module I1 = struct
       let polymorphic = false in
       let value = function
         | A v0 -> Typerep.Variant_internal.Value (tag0, v0)
+      in
+      Typerep.Variant (Typerep.Variant.internal_use_only {
+        Typerep.Variant_internal.
+        typename;
+        tags;
+        polymorphic;
+        value;
+      })
+    )))
+end
+
+module Inline_record = struct
+  type t = A of { x : int; y : string }
+
+  module Typename_of_t = Make_typename.Make0(struct
+      type nonrec t = t
+      let name = "Combination.Inline_record.t"
+    end)
+
+  let typerep_of_t =
+    let name_of_t = Typename_of_t.named in
+    Typerep.Named (name_of_t, Some (lazy (
+      let tag0 = Typerep.Tag.internal_use_only {
+        Typerep.Tag_internal.
+        label = "A";
+        rep = typerep_of_tuple2 typerep_of_int typerep_of_string;
+        arity = 2;
+        args_labels = [ "x" ; "y" ];
+        index = 0;
+        ocaml_repr = 0;
+        tyid = Typename.create ();
+        create = Typerep.Tag_internal.Args (fun (x, y) -> A { x; y })
+      } in
+      let typename = Typerep.Named.typename_of_t name_of_t in
+      let polymorphic = false in
+      let tags = [|
+        Typerep.Variant_internal.Tag tag0;
+      |] in
+      let value = function
+        | A {x; y} -> Typerep.Variant_internal.Value (tag0, (x, y))
       in
       Typerep.Variant (Typerep.Variant.internal_use_only {
         Typerep.Variant_internal.

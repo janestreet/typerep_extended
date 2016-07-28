@@ -35,3 +35,8 @@ module I1 : sig
   type t = A of [ `A ]
   val typerep_of_t : t Typerep.t
 end
+
+module Inline_record : sig
+  type t = A of { x : int; y : string }
+  val typerep_of_t : t Typerep.t
+end

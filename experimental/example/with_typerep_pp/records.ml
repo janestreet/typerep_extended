@@ -67,8 +67,7 @@ module M2 = struct
   }
 
   module Typename_of_t = Make_typename.Make0(struct
-    type non_rec = t
-    type t = non_rec
+    type nonrec t = t
     let name = "Records.M2.t"
   end)
 
@@ -126,8 +125,7 @@ module M3 = struct
   }
 
   module Typename_of_t = Make_typename.Make0(struct
-    type non_rec = t
-    type t = non_rec
+    type nonrec t = t
     let name = "Records.M3.t"
   end)
 
@@ -188,8 +186,7 @@ module P1 = struct
   }
 
   module Typename_of_t = Make_typename.Make1(struct
-    type 'a non_rec = 'a t
-    type 'a t = 'a non_rec
+    type nonrec 'a t = 'a t
     let name = "Records.P1.t"
   end)
 

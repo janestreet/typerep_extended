@@ -3,22 +3,9 @@ open Core.Std
 open Typerep_experimental.Std
 
 (* NB: in this file only the "safe" versions (i.e. the ml ones) of the reader and writer
- * are manually checked.
- * This is OK because:
- *   - the safe versions in reality call the unsafe ones (so the unsafe one are in fact
- *      checked as well, although it's not obvious at first.)
- *)
-module TreeTest = struct
-  type t = Leaf | Node of t * t [@@deriving typerep, bin_io]
-
-  let rec producer n =
-    if n > 0
-    then Node (producer (n-1), producer (n-1))
-    else Leaf
-  ;;
-
-  let value = producer 15
-end
+   are manually checked.  This is OK not to test the "unsafe" versions because the safe
+   versions in reality call the unsafe ones (so the unsafe one are in fact * checked as
+   well, although it's not obvious at first.)  *)
 
 let equal = Pervasives.(=)
 
@@ -26,8 +13,7 @@ let%test_module _ = (module struct
   open Bin_prot.Type_class
 
   let buf =
-    let size = TreeTest.bin_size_t TreeTest.value in
-    Bin_prot.Common.create_buf size
+    Bin_prot.Common.create_buf 65535
   ;;
 
   let compose_inverts_is_ident writer reader value : bool =
@@ -89,6 +75,26 @@ let%test_module _ = (module struct
   ;;
 
   (* ---------------------------------------------------------------------------------- *)
+  let check_untyped_shaper typerep trusted_shape =
+    let `generic shaper = Binrep.Tagged.bin_shape_t (Type_struct.of_typerep typerep) in
+    [%test_result: Bin_prot.Shape.Canonical.t]
+      (Bin_shape_lib.Shape.eval (shaper ()))
+      ~expect:(Bin_shape_lib.Shape.eval trusted_shape)
+  ;;
+
+  let check_typed_shaper typerep trusted_shape =
+    let `generic shaper = Binrep.bin_shape_t typerep in
+    [%test_result: Bin_prot.Shape.Canonical.t]
+      (Bin_shape_lib.Shape.eval (shaper ()))
+      ~expect:(Bin_shape_lib.Shape.eval trusted_shape)
+  ;;
+
+  let check_shape typerep trusted_shape =
+    check_untyped_shaper typerep trusted_shape;
+    check_typed_shaper typerep trusted_shape;
+  ;;
+
+  (* ---------------------------------------------------------------------------------- *)
   let test_sequence_typed ~value ~typerep ~trusted_reader ~trusted_writer =
     assert (check value typerep) ;
     ignore (trusted_writer.write buf ~pos:0 value) ;
@@ -137,11 +143,12 @@ let%test_module _ = (module struct
     end
 
   (* ---------------------------------------------------------------------------------- *)
-  let test_sequence ~value ~typerep ~trusted_reader ~trusted_writer =
-    test_sequence_typed ~value ~typerep ~trusted_reader ~trusted_writer ;
-    test_sequence_obj_typed ~value ~typerep ~trusted_reader ~trusted_writer ;
-    test_sequence_untyped ~value ~typerep ~trusted_reader ~trusted_writer ;
+  let test_sequence ~value ~typerep ~trusted_reader ~trusted_writer ~trusted_shape =
+    test_sequence_typed ~value ~typerep ~trusted_reader ~trusted_writer;
+    test_sequence_obj_typed ~value ~typerep ~trusted_reader ~trusted_writer;
+    test_sequence_untyped ~value ~typerep ~trusted_reader ~trusted_writer;
     full_cycle ~value ~typerep ~trusted_reader ~trusted_writer;
+    check_shape typerep trusted_shape;
   ;;
 
   let%test_unit _ =
@@ -153,6 +160,7 @@ let%test_module _ = (module struct
       ~typerep:M.typerep_of_t
       ~trusted_reader:M.bin_reader_t
       ~trusted_writer:M.bin_writer_t
+      ~trusted_shape:M.bin_shape_t
   ;;
 
   let%test_unit _ =
@@ -165,6 +173,7 @@ let%test_module _ = (module struct
       ~typerep:M.typerep_of_t
       ~trusted_reader:M.bin_reader_t
       ~trusted_writer:M.bin_writer_t
+      ~trusted_shape:M.bin_shape_t
   ;;
 
   let%test_unit _ =
@@ -177,6 +186,7 @@ let%test_module _ = (module struct
       ~typerep:M.typerep_of_t
       ~trusted_reader:M.bin_reader_t
       ~trusted_writer:M.bin_writer_t
+      ~trusted_shape:M.bin_shape_t
   ;;
 
   let%test_unit _ =
@@ -189,6 +199,7 @@ let%test_module _ = (module struct
       ~typerep:M.typerep_of_t
       ~trusted_reader:M.bin_reader_t
       ~trusted_writer:M.bin_writer_t
+      ~trusted_shape:M.bin_shape_t
   ;;
 
   let%test_unit _ =
@@ -201,6 +212,7 @@ let%test_module _ = (module struct
       ~typerep:M.typerep_of_t
       ~trusted_reader:M.bin_reader_t
       ~trusted_writer:M.bin_writer_t
+      ~trusted_shape:M.bin_shape_t
   ;;
 
   let%test_unit _ =
@@ -213,6 +225,7 @@ let%test_module _ = (module struct
       ~typerep:M.typerep_of_t
       ~trusted_reader:M.bin_reader_t
       ~trusted_writer:M.bin_writer_t
+      ~trusted_shape:M.bin_shape_t
   ;;
 
   let%test_unit _ =
@@ -225,6 +238,7 @@ let%test_module _ = (module struct
         ~typerep:M.typerep_of_t
         ~trusted_reader:M.bin_reader_t
         ~trusted_writer:M.bin_writer_t
+        ~trusted_shape:M.bin_shape_t
     in
     test true;
     test false
@@ -239,6 +253,7 @@ let%test_module _ = (module struct
       ~typerep:M.typerep_of_t
       ~trusted_reader:M.bin_reader_t
       ~trusted_writer:M.bin_writer_t
+      ~trusted_shape:M.bin_shape_t
   ;;
 
   let%test_unit _ =
@@ -249,11 +264,13 @@ let%test_module _ = (module struct
       let typerep = M.typerep_of_t typerep_of_int in
       let trusted_reader = M.bin_reader_t bin_reader_int in
       let trusted_writer = M.bin_writer_t bin_writer_int in
+      let trusted_shape = M.bin_shape_t bin_shape_int in
       test_sequence
         ~value
         ~typerep
         ~trusted_reader
         ~trusted_writer
+        ~trusted_shape
     in
     test None;
     test (Some 5)
@@ -267,11 +284,13 @@ let%test_module _ = (module struct
       let typerep = M.typerep_of_t typerep_of_int in
       let trusted_reader = M.bin_reader_t bin_reader_int in
       let trusted_writer = M.bin_writer_t bin_writer_int in
+      let trusted_shape = M.bin_shape_t bin_shape_int in
       test_sequence
         ~value
         ~typerep
         ~trusted_reader
         ~trusted_writer
+        ~trusted_shape
     in
     test [] ;
     test [1;2;6;5;4;3]
@@ -285,11 +304,13 @@ let%test_module _ = (module struct
       let typerep = M.typerep_of_t typerep_of_int in
       let trusted_reader = M.bin_reader_t bin_reader_int in
       let trusted_writer = M.bin_writer_t bin_writer_int in
+      let trusted_shape = M.bin_shape_t bin_shape_int in
       test_sequence
         ~value
         ~typerep
         ~trusted_reader
         ~trusted_writer
+        ~trusted_shape
     in
     test [||] ;
     test [|1;2;6;5;4;3|]
@@ -303,11 +324,30 @@ let%test_module _ = (module struct
     let typerep = M.typerep_of_t typerep_of_int in
     let trusted_reader = M.bin_reader_t bin_reader_int in
     let trusted_writer = M.bin_writer_t bin_writer_int in
+    let trusted_shape = M.bin_shape_t bin_shape_int in
     test_sequence
       ~value
       ~typerep
       ~trusted_reader
       ~trusted_writer
+      ~trusted_shape
+  ;;
+
+  let%test_unit _ =
+    let module M = struct
+      type t = {foo:int; bar:float} [@@deriving typerep, bin_io]
+    end in
+    let value = { M. foo = 5 ; bar = 43.25 } in
+    let typerep = M.typerep_of_t in
+    let trusted_reader = M.bin_reader_t in
+    let trusted_writer = M.bin_writer_t in
+    let trusted_shape = M.bin_shape_t in
+    test_sequence
+      ~value
+      ~typerep
+      ~trusted_reader
+      ~trusted_writer
+      ~trusted_shape
   ;;
 
   let%test_unit _ =
@@ -318,12 +358,14 @@ let%test_module _ = (module struct
     let typerep = M.typerep_of_t typerep_of_int in
     let trusted_reader = M.bin_reader_t bin_reader_int in
     let trusted_writer = M.bin_writer_t bin_writer_int in
-
+    let trusted_shape = M.bin_shape_t bin_shape_int in
     test_sequence
       ~value
       ~typerep
       ~trusted_reader
       ~trusted_writer
+      ~trusted_shape
+  ;;
 
   let%test_unit _ =
     let module M = struct
@@ -333,11 +375,13 @@ let%test_module _ = (module struct
     let typerep = M.typerep_of_t typerep_of_int typerep_of_float in
     let trusted_reader = M.bin_reader_t bin_reader_int bin_reader_float in
     let trusted_writer = M.bin_writer_t bin_writer_int bin_writer_float in
+    let trusted_shape = M.bin_shape_t bin_shape_int bin_shape_float in
     test_sequence
       ~value
       ~typerep
       ~trusted_reader
       ~trusted_writer
+      ~trusted_shape
   ;;
 
   let%test_unit _ =
@@ -358,11 +402,18 @@ let%test_module _ = (module struct
         bin_writer_int
         bin_writer_float
     in
+    let trusted_shape =
+      M.bin_shape_t
+        bin_shape_int
+        bin_shape_int
+        bin_shape_float
+    in
     test_sequence
       ~value
       ~typerep
       ~trusted_reader
       ~trusted_writer
+      ~trusted_shape
   ;;
 
   let%test_unit _ =
@@ -391,11 +442,19 @@ let%test_module _ = (module struct
         bin_writer_float
         bin_writer_float
     in
+    let trusted_shape =
+      M.bin_shape_t
+        bin_shape_int
+        bin_shape_int
+        bin_shape_float
+        bin_shape_float
+    in
     test_sequence
       ~value
       ~typerep
       ~trusted_reader
       ~trusted_writer
+      ~trusted_shape
   ;;
 
   let%test_unit _ =
@@ -427,11 +486,20 @@ let%test_module _ = (module struct
         bin_writer_float
         bin_writer_string
     in
+    let trusted_shape =
+      M.bin_shape_t
+        bin_shape_int
+        bin_shape_int
+        bin_shape_float
+        bin_shape_float
+        bin_shape_string
+    in
     test_sequence
       ~value
       ~typerep
       ~trusted_reader
       ~trusted_writer
+      ~trusted_shape
   ;;
 
   let%test_unit _ =
@@ -441,6 +509,7 @@ let%test_module _ = (module struct
         | Bar of int
         | Baz of int * int
         | Bax of (int * int)
+        | Sna of { x : int; y : string }
         [@@deriving typerep, bin_io]
     end in
     let test value =
@@ -449,19 +518,38 @@ let%test_module _ = (module struct
         ~typerep:M.typerep_of_t
         ~trusted_reader:M.bin_reader_t
         ~trusted_writer:M.bin_writer_t
+        ~trusted_shape:M.bin_shape_t
     in
     test M.Foo;
     test (M.Bar  651);
     test (M.Baz (651,54));
-    test (M.Bax (651,54))
+    test (M.Bax (651,54));
+    test (M.Sna { x = 42; y = "y" });
   ;;
 
   let%test_unit _ =
-    test_sequence
-      ~value:TreeTest.value
-      ~typerep:TreeTest.typerep_of_t
-      ~trusted_reader:TreeTest.bin_reader_t
-      ~trusted_writer:TreeTest.bin_writer_t
+    let module A = struct
+      type 'a t = Leaf of 'a | Node of 'a t * 'a t [@@deriving typerep, bin_io]
+    end in
+    let module M = struct
+      type t = int A.t [@@deriving typerep, bin_io]
+
+      let rec producer n =
+        if n > 0
+        then A.Node (producer (n-1), producer (n-1))
+        else A.Leaf 0
+      ;;
+
+      let value = producer 15
+    end in
+    if false
+    then
+      test_sequence
+        ~value:M.value
+        ~typerep:M.typerep_of_t
+        ~trusted_reader:M.bin_reader_t
+        ~trusted_writer:M.bin_writer_t
+        ~trusted_shape:M.bin_shape_t
   ;;
 
   let%test_unit _ =
@@ -474,6 +562,7 @@ let%test_module _ = (module struct
         ~typerep:M.typerep_of_t
         ~trusted_reader:M.bin_reader_t
         ~trusted_writer:M.bin_writer_t
+        ~trusted_shape:M.bin_shape_t
     in
     test (`Foo);
     test (`Bar 13);

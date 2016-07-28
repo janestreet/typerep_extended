@@ -366,23 +366,28 @@ let%test_module _ = (module struct
         | Bar of int
         | Baz of int * int
         | Bax of (int * int)
-        [@@deriving typerep, sexp]
+        | Sna of { x : int; y : string }
+      [@@deriving typerep, sexp]
     end in
     (* sexprep serialize and deserialize *)
     assert(check M.Foo M.typerep_of_t);
     assert(check (M.Bar 651) M.typerep_of_t);
     assert(check (M.Baz (651,54)) M.typerep_of_t);
     assert(check (M.Bax (651,54)) M.typerep_of_t);
+    assert(check (M.Sna { x = 42; y = "y" }) M.typerep_of_t);
     (* sexplib serialize; sexprep deserialize *)
     assert(check_of_sexp M.Foo M.typerep_of_t M.sexp_of_t);
     assert(check_of_sexp (M.Bar 651) M.typerep_of_t M.sexp_of_t);
     assert(check_of_sexp (M.Baz (651,54)) M.typerep_of_t M.sexp_of_t);
     assert(check_of_sexp (M.Bax (651,54)) M.typerep_of_t M.sexp_of_t);
+    assert(check_of_sexp (M.Sna { x = 42; y = "y" }) M.typerep_of_t M.sexp_of_t);
     (* sexprep serialize; sexplib deserialize *)
     assert(check_of_t M.Foo M.typerep_of_t M.t_of_sexp);
     assert(check_of_t (M.Bar 651) M.typerep_of_t M.t_of_sexp);
     assert(check_of_t (M.Baz (651,54)) M.typerep_of_t M.t_of_sexp);
-    assert(check_of_t (M.Bax (651,54)) M.typerep_of_t M.t_of_sexp)
+    assert(check_of_t (M.Bax (651,54)) M.typerep_of_t M.t_of_sexp);
+    assert(check_of_t (M.Sna { x = 42; y = "y" }) M.typerep_of_t M.t_of_sexp);
+  ;;
 
   let%test_unit _ =
     let module M = struct

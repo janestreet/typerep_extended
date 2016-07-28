@@ -135,10 +135,25 @@ module Of_sexp = struct
               let arity = Tag.arity tag in
               let sexp_value =
                 if arity = 1
-                then match sexps with
-                | [sexp] -> sexp
-                | _ -> fail ()
-                else Sexp.List sexps
+                then
+                  match sexps with
+                  | [sexp] -> sexp
+                  | _ -> fail ()
+                else
+                  match Tag.args_labels tag with
+                  | [] -> Sexp.List sexps
+                  | (_::_) as args_labels ->
+                    let arg_by_label =
+                      sexps
+                      |> List.map ~f:(function
+                        | Sexp.List [ Sexp.Atom label; sexp ] -> label, sexp
+                        | _ -> fail ())
+                      |> Flat_map.Flat_string_map.of_alist
+                    in
+                    Sexp.List (List.map args_labels ~f:(fun label ->
+                      match Flat_map.Flat_string_map.find arg_by_label label with
+                      | Some sexp -> sexp
+                      | None -> fail ()))
               in
               create (Tag.traverse tag sexp_value)
             | Tag.Const _ -> fail ()
@@ -210,6 +225,7 @@ module Sexp_of = struct
             aux (field::acc) (pred index)
         in
         aux [] (pred (Record.length record))
+    ;;
 
     let variant variant =
       (* preallocation of atoms *)
@@ -227,11 +243,18 @@ module Sexp_of = struct
           | 0 -> atom
           | 1 -> Sexp.List [ atom ; Tag.traverse tag args ]
           | _ ->
-            (* this might be a cause of this being slower because of this [Sexp.List
-               sexps] temporary cons/decons I'm not sure how to get rid of it though *)
             match Tag.traverse tag args with
-            | Sexp.List sexps -> Sexp.List (atom::sexps)
+            | Sexp.List sexps ->
+              let sexps =
+                match Tag.args_labels tag with
+                | [] -> sexps
+                | (_::_) as args_labels ->
+                  List.map2_exn args_labels sexps ~f:(fun label sexp ->
+                    Sexp.List [ Atom label; sexp ])
+              in
+              Sexp.List (atom::sexps)
             | _ -> assert false
+    ;;
 
     module Named = Type_generic.Make_named_for_closure(struct
       type 'a input = 'a

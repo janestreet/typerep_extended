@@ -158,6 +158,7 @@ module Of_typed = struct
       let d = cd d in
       let e = ce e in
       Tuple (Farray.make5 a b c d e)
+    ;;
 
     let variant variant typed =
       let infos =
@@ -176,18 +177,21 @@ module Of_typed = struct
         let index = Tag.index tag in
         let ocaml_repr = Tag.ocaml_repr tag in
         let arity = Tag.arity tag in
+        let args_labels = Tag.args_labels tag in
         let args =
           let value = Tag.traverse tag args in
           variant_to_args value ~arity
         in
-        let tag = {
-          Type_struct.Variant.
-          label;
-          index;
-          ocaml_repr;
-        }
+        let tag =
+          { Type_struct.Variant.
+            label
+          ; index
+          ; ocaml_repr
+          ; args_labels
+          }
         in
         Variant (infos, tag, args)
+    ;;
 
     module Named = Type_generic.Make_named_for_closure(struct
       type 'a input = 'a
@@ -524,8 +528,12 @@ module Variant = struct
   let match_with_repr expr ~repr =
     match expr with
     | Variant ({Type_struct.Variant_infos.kind},
-               { Type_struct.Variant.ocaml_repr; index;
-                 label=_ },
+               { Type_struct.Variant.
+                 ocaml_repr
+               ; index
+               ; label       = _
+               ; args_labels = _
+               },
                args) ->
       let repr' =
         if Type_struct.Variant.Kind.is_polymorphic kind
@@ -544,8 +552,12 @@ module Variant = struct
   let unpack expr =
     match expr with
     | Variant ({Type_struct.Variant_infos.kind},
-               {Type_struct.Variant.ocaml_repr; index;
-                label=_ },
+               { Type_struct.Variant.
+                 ocaml_repr
+               ; index
+               ; label       = _
+               ; args_labels = _
+               },
                args) ->
       let repr =
         if Type_struct.Variant.Kind.is_polymorphic kind
@@ -562,8 +574,12 @@ module Variant = struct
 
   let unpack_name expr =
     match expr with
-    | Variant (_, { Type_struct.Variant.label=name;
-                    ocaml_repr=_ ; index=_},
+    | Variant (_, { Type_struct.Variant.
+                    label       = name
+                  ; ocaml_repr  = _
+                  ; index       = _
+                  ; args_labels = _
+                  },
                args) ->
       `name name, args
     | Option opt -> begin
@@ -597,8 +613,11 @@ module Variant = struct
           Flat_map.Flat_string_map.of_array ~f:key branches
         in
         (* a polymorphic variant may be extended, we want to lookup by name *)
-        (fun ({ Type_struct.Variant.label=name;
-                ocaml_repr=_; index=_;
+        (fun ({ Type_struct.Variant.
+                label       = name
+              ; ocaml_repr  = _
+              ; index       = _
+              ; args_labels = _
               } as variant) ->
           match Flat_map.Flat_string_map.find map name with
           | Some (_,data) -> data
@@ -606,8 +625,11 @@ module Variant = struct
 
       | Type_struct.Variant.Kind.Usual ->
         (* even if a usual variant is extended, the repr should be compatible *)
-        (fun ({ Type_struct.Variant.label=name; index;
-                ocaml_repr=_;
+        (fun ({ Type_struct.Variant.
+                label       = name
+              ; index
+              ; ocaml_repr  = _
+              ; args_labels = _
               } as variant) ->
           if index < Farray.length branches then
             let (variant_case, variant_args) = Farray.get branches index in
@@ -615,6 +637,7 @@ module Variant = struct
               (index, variant_args)
             else fail variant
           else fail variant)
+    ;;
 
     let get_tag_of_untyped untyped =
       match untyped with
@@ -631,6 +654,7 @@ module Variant = struct
         else
           raise (Type_mismatch (str, untyped))
       | _ -> raise (Type_mismatch (str, untyped))
+    ;;
 
     let pack variant ~args =
       Variant (infos, variant, args)

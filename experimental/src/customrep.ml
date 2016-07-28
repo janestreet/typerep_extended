@@ -36,6 +36,12 @@ let register0 m =
     let typename_of_t = typename_of_t
     let compute = M.bin_reader_t
   end in
+  let module Shaper = struct
+    type t = M.t
+    let typerep_of_t = typerep_of_t
+    let typename_of_t = typename_of_t
+    let compute () = M.bin_shape_t
+  end in
   let module Struct = struct
     type t = M.t
     let typerep_of_t = typerep_of_t
@@ -48,6 +54,7 @@ let register0 m =
   Binrep.Sizer.register0 (module Sizer : Binrep.Sizer.S0);
   Binrep.Writer.register0 (module Writer : Binrep.Writer.S0);
   Binrep.Reader.register0 (module Reader : Binrep.Reader.S0);
+  Binrep.Shaper.register0 (module Shaper : Binrep.Shaper.S0);
 ;;
 
 let register1 m =
@@ -84,6 +91,12 @@ let register1 m =
     let typename_of_t = typename_of_t
     let compute = M.bin_reader_t
   end in
+  let module Shaper = struct
+    type 'a t = 'a M.t
+    let typerep_of_t = typerep_of_t
+    let typename_of_t = typename_of_t
+    let compute a () = M.bin_shape_t (a ())
+  end in
   let module Struct = struct
     type 'a t = 'a M.t
     let typerep_of_t = typerep_of_t
@@ -96,6 +109,7 @@ let register1 m =
   Binrep.Sizer.register1 (module Sizer : Binrep.Sizer.S1);
   Binrep.Writer.register1 (module Writer : Binrep.Writer.S1);
   Binrep.Reader.register1 (module Reader : Binrep.Reader.S1);
+  Binrep.Shaper.register1 (module Shaper : Binrep.Shaper.S1);
 ;;
 
 let register2 m =
@@ -132,6 +146,12 @@ let register2 m =
     let typename_of_t = typename_of_t
     let compute = M.bin_reader_t
   end in
+  let module Shaper = struct
+    type ('a, 'b) t = ('a, 'b) M.t
+    let typerep_of_t = typerep_of_t
+    let typename_of_t = typename_of_t
+    let compute a b () = M.bin_shape_t (a ()) (b ())
+  end in
   let module Struct = struct
     type ('a, 'b) t = ('a, 'b) M.t
     let typerep_of_t = typerep_of_t
@@ -144,5 +164,6 @@ let register2 m =
   Binrep.Sizer.register2 (module Sizer : Binrep.Sizer.S2);
   Binrep.Writer.register2 (module Writer : Binrep.Writer.S2);
   Binrep.Reader.register2 (module Reader : Binrep.Reader.S2);
+  Binrep.Shaper.register2 (module Shaper : Binrep.Shaper.S2);
 ;;
 
