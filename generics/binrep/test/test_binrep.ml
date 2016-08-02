@@ -78,8 +78,8 @@ let%test_module _ = (module struct
   let check_untyped_shaper typerep trusted_shape =
     let `generic shaper = Binrep.Tagged.bin_shape_t (Type_struct.of_typerep typerep) in
     [%test_result: Bin_prot.Shape.Canonical.t]
-      (Bin_shape_lib.Shape.eval (shaper ()))
-      ~expect:(Bin_shape_lib.Shape.eval trusted_shape)
+      (Bin_shape_lib.Bin_shape.eval (shaper ()))
+      ~expect:(Bin_shape_lib.Bin_shape.eval trusted_shape)
   ;;
 
   let check_typed_shaper typerep trusted_shape =
