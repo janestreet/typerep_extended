@@ -1,0 +1,18 @@
+(library (
+  (name sexprep_test)
+  (libraries (
+    core
+    sexplib
+    typerep_experimental
+  ))
+  (preprocess ((
+    (pps (
+      pa_type_conv
+      pa_sexp_conv
+      pa_bin_prot
+      pa_typerep_conv
+      ppx_inline_test
+    ))
+    All
+  )))
+))

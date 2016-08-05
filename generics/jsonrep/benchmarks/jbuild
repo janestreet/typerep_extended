@@ -1,0 +1,19 @@
+(executables (
+  (names (bench_jsonrep))
+  (libraries (
+    core
+    core_extended
+    json
+    json_typerep
+    sexplib
+    typerep_experimental
+  ))
+  (preprocess ((
+    (pps (
+      pa_type_conv
+      pa_sexp_conv
+      pa_typerep_conv
+    ))
+    All
+  )))
+))

@@ -1,0 +1,11 @@
+(executables (
+  (names (
+    exec1
+    exec2
+    bin_io_diff
+  ))
+  (libraries (
+    core
+    typerep_extended
+  ))
+))

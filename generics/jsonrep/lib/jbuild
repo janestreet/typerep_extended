@@ -1,0 +1,8 @@
+(library (
+  (name json_typerep)
+  (libraries (
+    core
+    json_wheel_internal
+    typerep_experimental
+  ))
+))

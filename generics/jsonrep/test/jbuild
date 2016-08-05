@@ -1,0 +1,8 @@
+(library (
+  (name jsonrep_test)
+  (libraries (
+    core
+    json
+    json_typerep
+    typerep_experimental
+    ))))

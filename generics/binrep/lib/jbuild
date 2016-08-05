@@ -1,0 +1,21 @@
+(library (
+  (name typerep_bin_io)
+  (public_name typerep_extended.binrep)
+  (libraries (
+    bin_prot
+    core_kernel
+    sexplib
+    typerep_extended
+    typerep_lib
+  ))
+  (preprocess ((
+    (pps (
+      pa_type_conv
+      pa_bin_prot
+      pa_sexp_conv
+      pa_sexp_value
+      pa_typerep_conv
+    ))
+    All
+  )))
+))

@@ -1,0 +1,16 @@
+(library (
+  (name typerep_pp_examples)
+  (libraries (
+    core
+    typerep_experimental
+  ))
+  (preprocess ((
+    (pps (
+      pa_type_conv
+      pa_sexp_conv
+      pa_typerep_conv
+      ppx_inline_test
+    ))
+    All
+  )))
+))
