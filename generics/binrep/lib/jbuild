@@ -6,16 +6,14 @@
     core_kernel
     sexplib
     typerep_extended
-    typerep_lib
+    typerep
   ))
-  (preprocess ((
+  (preprocess
     (pps (
-      pa_type_conv
-      pa_bin_prot
-      pa_sexp_conv
-      pa_sexp_value
-      pa_typerep_conv
-    ))
-    All
-  )))
+      ppx_type_conv
+      ppx_bin_prot
+      ppx_sexp_conv
+      ppx_sexp_value
+      ppx_typerep_conv
+    )))
 ))

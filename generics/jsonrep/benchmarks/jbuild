@@ -8,12 +8,10 @@
     sexplib
     typerep_experimental
   ))
-  (preprocess ((
+  (preprocess
     (pps (
-      pa_type_conv
-      pa_sexp_conv
-      pa_typerep_conv
-    ))
-    All
-  )))
+      ppx_type_conv
+      ppx_sexp_conv
+      ppx_typerep_conv
+    )))
 ))

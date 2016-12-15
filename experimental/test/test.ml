@@ -10,29 +10,6 @@ let print_rep name typerep =
 
 (* manual examples *)
 
-let f () =
-  print_rep "Records.M1.t" Records.M1.typerep_of_t;
-  print_rep "Records.M2.t" Records.M2.typerep_of_t;
-  print_rep "Records.M3.t" Records.M3.typerep_of_t;
-
-  print_rep "Variants.M1.t" Variants.M1.typerep_of_t;
-  print_rep "Variants.M2.t" Variants.M2.typerep_of_t;
-  print_rep "Variants.M3.t" Variants.M3.typerep_of_t;
-
-  print_rep "Tuples.M1.t" Tuples.M1.typerep_of_t;
-  print_rep "Tuples.M2.t" Tuples.M2.typerep_of_t;
-  print_rep "Tuples.M3.t" Tuples.M3.typerep_of_t;
-
-  print_rep "Combination.t" Combination.typerep_of_t;
-
-  print_rep "int Variants.P1.t" (Variants.P1.typerep_of_t typerep_of_int);
-  print_rep "int Records.P1.t" (Records.P1.typerep_of_t typerep_of_int);
-
-  print_rep "int Recursives.M1.t" (Recursives.M1.typerep_of_tree typerep_of_int);
-;;
-
-let () = if Array.length Sys.argv > 1 && Sys.argv.(1) = "--print-rep" then f ()
-
 let print_typestruct str =
   let sexp = Type_struct.sexp_of_t str in
   print_endline (Sexp.to_string_hum sexp)

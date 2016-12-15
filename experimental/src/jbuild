@@ -7,7 +7,7 @@
     sexplib
     typerep_bin_io
     typerep_extended
-    typerep_lib
+    typerep
     typerep_sexp
   ))
 ))

@@ -5,14 +5,12 @@
     sexplib
     typerep_experimental
   ))
-  (preprocess ((
+  (preprocess
     (pps (
-      pa_type_conv
-      pa_sexp_conv
-      pa_bin_prot
-      pa_typerep_conv
+      ppx_type_conv
+      ppx_sexp_conv
+      ppx_bin_prot
+      ppx_typerep_conv
       ppx_inline_test
-    ))
-    All
-  )))
+    )))
 ))
