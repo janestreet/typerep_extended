@@ -30,7 +30,7 @@ let get_protocols prog =
   let channel = Unix.open_process_in prog in
   let stdout = In_channel.input_all channel in
   ok_exn Unix.Exit_or_signal.sexp_of_error (Unix.close_process_in channel);
-  let sexp = Sexp.of_string (String.strip stdout) in
+  let sexp = Sexp.of_string stdout in
   Protocol_table.Protocols.t_of_sexp sexp
 
 let skip_file string =
