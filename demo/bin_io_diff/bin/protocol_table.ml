@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Typerep_extended.Std
 
 (* this can be dynamically changed via a config for example. What this means is that this

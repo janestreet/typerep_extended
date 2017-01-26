@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Typerep_extended.Std
 
 module Mode = struct

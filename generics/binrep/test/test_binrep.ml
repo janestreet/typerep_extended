@@ -1,5 +1,5 @@
 
-open Core.Std
+open Core
 open Typerep_experimental.Std
 
 (* NB: in this file only the "safe" versions (i.e. the ml ones) of the reader and writer

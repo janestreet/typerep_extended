@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Typerep_experimental.Std
 
 let hash_variant = Typerep_obj.hash_variant

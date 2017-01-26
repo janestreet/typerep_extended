@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Json_typerep.Std
 open Typerep_experimental.Std
 

@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 open Typerep_experimental.Std
 
 let%test_module _ = (module struct

@@ -1,4 +1,4 @@
-open! Core.Std
+open! Core
 open Json_wheel_internal.Std
 
 exception Type_mismatch of string * Json_type.t

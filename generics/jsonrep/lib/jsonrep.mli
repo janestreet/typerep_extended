@@ -1,4 +1,4 @@
-open! Core.Std
+open! Core
 open Json_wheel_internal.Std
 open Typerep_experimental.Std
 
