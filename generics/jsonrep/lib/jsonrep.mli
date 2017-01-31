@@ -1,5 +1,5 @@
 open! Core
-open Json_wheel_internal.Std
+open Json_wheel_jane_street_overlay.Std
 open Typerep_experimental.Std
 
 module type S = sig

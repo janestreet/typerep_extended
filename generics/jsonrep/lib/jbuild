@@ -2,7 +2,7 @@
   (name json_typerep)
   (libraries (
     core
-    json_wheel_internal
+    json-wheel_jane_street_overlay
     typerep_experimental
   ))
 ))

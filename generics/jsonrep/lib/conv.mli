@@ -1,5 +1,5 @@
 open! Core
-open Json_wheel_internal.Std
+open Json_wheel_jane_street_overlay.Std
 
 exception Type_mismatch of string * Json_type.t
 
