@@ -1,4 +1,4 @@
-open! Core_kernel.Std
+open! Core_kernel
 open Typerep_lib.Std
 
 exception Not_downgradable of Sexp.t [@@deriving sexp]

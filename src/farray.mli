@@ -1,4 +1,4 @@
-open! Core_kernel.Std
+open! Core_kernel
 
 type 'a t [@@deriving sexp, bin_io, typerep]
 

@@ -1,4 +1,4 @@
-open Core_kernel.Std
+open Core_kernel
 
 let option t ~f =
   match t with

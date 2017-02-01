@@ -1,7 +1,7 @@
 (*
   Structural representation of [Type.Rep.t]. Serializable.
 *)
-open! Core_kernel.Std
+open! Core_kernel
 open Typerep_lib.Std
 
 (** Exception raised when trying to downgrade a type struct that makes use of new features

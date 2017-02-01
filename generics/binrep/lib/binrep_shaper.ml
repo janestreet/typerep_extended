@@ -1,4 +1,4 @@
-open Core_kernel.Std
+open Core_kernel
 open Bin_prot
 open Typerep_extended.Std
 
