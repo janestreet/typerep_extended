@@ -14,3 +14,5 @@
       ppx_inline_test
     )))
 ))
+
+(jbuild_version jane_street)

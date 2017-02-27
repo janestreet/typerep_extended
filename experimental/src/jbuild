@@ -11,3 +11,5 @@
     typerep_sexp
   ))
 ))
+
+(jbuild_version jane_street)

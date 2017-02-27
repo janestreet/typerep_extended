@@ -16,3 +16,5 @@
       ppx_typerep_conv
     )))
 ))
+
+(jbuild_version jane_street)

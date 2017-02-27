@@ -6,3 +6,5 @@
     typerep_experimental
   ))
 ))
+
+(jbuild_version jane_street)

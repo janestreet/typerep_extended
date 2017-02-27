@@ -15,3 +15,5 @@
       ppx_assert
     )))
 ))
+
+(jbuild_version jane_street)
