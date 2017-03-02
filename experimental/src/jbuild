@@ -10,6 +10,7 @@
     typerep
     typerep_sexp
   ))
+  (preprocess (pps (ppx_jane)))
 ))
 
 (jbuild_version jane_street)

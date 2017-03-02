@@ -5,6 +5,7 @@
     json
     json_typerep
     typerep_experimental
-    ))))
+    ))
+  (preprocess (pps (ppx_jane)))))
 
 (jbuild_version jane_street)
