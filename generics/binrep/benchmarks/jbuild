@@ -15,4 +15,4 @@
       ppx_typerep_conv
      ppx_driver.runner)))))
 
-(jbuild_version jane_street)
+(jbuild_version 1)
